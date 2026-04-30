@@ -5,6 +5,61 @@
 
 ---
 
+## 2026-04-30: Live-state gap + label clarity (claude-opus-4-7)
+
+User screenshot showed `aahp run` mid-flight with 7 agents running per the
+CLI status board, but the hub footer said "8 in progress" while the running
+counter showed 0. Two issues entangled.
+
+### Root cause: runner does not publish live agents
+
+Inspected `~/.aahp/sessions.json` while a 16-agent parallel run was active:
+
+```
+{ "updatedAt": "2026-04-25T13:01:21.714Z",
+  "sessions": [],
+  "controlPort": 48237 }
+```
+
+The `controlPort` is published, but the `sessions` array is empty. The
+runner's `StatusBoard` is in-memory; only the orchestrator (VS Code
+extension) currently writes to `sessions.json`. So the hub legitimately
+has nothing to render until the runner mirrors its state.
+
+Filed `homeofe/aahp-runner#31` requesting that `aahp run` publish its
+register/unregister events into `sessions.json` (the control-server
+already has the merge helpers).
+
+### Hub-side mitigations (this session)
+
+1. **Detect "runner active but silent" state.** When `controlPort != null`
+   and `runningCount === 0`, the Control Center renders an amber notice:
+   "aahp run is active on port :NNNN but live agent details are not
+   published yet (runner issue #31)". This tells the user the work IS
+   happening; the hub just cannot see it yet.
+2. **Disable Run All when runner already active.** Previously only
+   disabled when `runningCount > 0`. Now also disabled when
+   `controlPort` is set, even if `runningCount` is 0. Avoids spawning a
+   second `aahp run` on top of an existing one.
+3. **Relabel counters to distinguish manifest from live state:**
+   - Footer: `8 in_progress (manifest)` instead of `8 in progress`
+   - Control Center: `live agents` and `tasks ready` instead of
+     `running` and `ready`
+   - Hover tooltips spell out the source (manifest vs live)
+4. **Control port label.** Was `control port :NNNN` regardless of state.
+   Now: `:NNNN (run active)` when set, `idle` when binary is present
+   but no run, `no runner` when binary missing.
+
+### Verification
+
+- `npm test` 51/51 pass
+- `npm run build` clean
+- `npm run lint` clean
+- The semantic mismatch the user spotted is now self-explanatory in the
+  UI even before runner #31 ships.
+
+---
+
 ## 2026-04-30: Control Center + cleanup (claude-opus-4-7)
 
 User feedback after seeing the live dashboard: "looks really dirty :D".

@@ -279,21 +279,30 @@ function ControlCenter({
   runningCount: number;
   totalReady: number;
 }): React.ReactElement {
+  // Runner liveness has three meaningful states:
+  //   ACTIVE   - controlPort is set; `aahp run` is executing right now
+  //   INSTALLED- binary detected on PATH but no run in flight
+  //   MISSING  - binary not detected
+  const runnerActive = runner.available && controlPort !== null;
   const runnerLabel = runner.available
     ? `aahp ${runner.version ?? 'unknown'}`
     : 'aahp not found';
   const controlLabel = controlPort
-    ? `control port :${controlPort}`
-    : 'control port idle';
+    ? `control port :${controlPort} (run active)`
+    : runner.available
+      ? 'idle'
+      : 'no runner';
   const noReady = totalReady === 0;
-  const allDisabled = !runner.available || runningCount > 0 || noReady;
+  const allDisabled = !runner.available || runnerActive || noReady;
   const allReason = !runner.available
     ? 'aahp binary not on PATH (npm install -g @elvatis_com/aahp-runner)'
-    : runningCount > 0
-      ? `${runningCount} agent${runningCount === 1 ? '' : 's'} already running`
+    : runnerActive
+      ? `aahp run is already active (port :${controlPort})`
       : noReady
         ? 'no ready tasks across the workspace'
         : undefined;
+  // Detect the "runner active but sessions empty" gap (runner issue #31).
+  const runnerSilentlyActive = runnerActive && runningCount === 0;
 
   return (
     <section className="mb-6 rounded-lg border border-border bg-bg-card p-4 flex flex-wrap items-center gap-4">
@@ -316,13 +325,13 @@ function ControlCenter({
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
         <span>
-          <span className="text-text-faint">running </span>
+          <span className="text-text-faint">live agents </span>
           <span className={runningCount > 0 ? 'text-status-done font-mono' : 'text-text-dim font-mono'}>
             {runningCount}
           </span>
         </span>
         <span>
-          <span className="text-text-faint">ready </span>
+          <span className="text-text-faint">tasks ready </span>
           <span className={totalReady > 0 ? 'text-status-ready font-mono' : 'text-text-dim font-mono'}>
             {totalReady}
           </span>
@@ -361,6 +370,17 @@ function ControlCenter({
               (details on hover)
             </span>
           )}
+        </p>
+      )}
+
+      {runnerSilentlyActive && (
+        <p
+          className="basis-full text-xs text-status-progress mt-1"
+          title="aahp run is executing but has not published its agent list to sessions.json. Tracked in homeofe/aahp-runner#31."
+        >
+          aahp run is active on port :{controlPort} but live agent details are
+          not published yet (runner issue #31). Per-card progress will appear
+          once the runner mirrors its status board to sessions.json.
         </p>
       )}
     </section>
@@ -582,8 +602,13 @@ export default async function Page(): Promise<React.ReactElement> {
                   {result.stubs.length === 1 ? '' : 's'} hidden
                 </span>
               )}
-              <span>{totalInProgress} in progress</span>
-              <span>{totalReady} ready</span>
+              <span title="Tasks marked in_progress in MANIFEST.json (manifest state, not live agents)">
+                {totalInProgress} task
+                {totalInProgress === 1 ? '' : 's'} in_progress (manifest)
+              </span>
+              <span title="Tasks marked ready in MANIFEST.json across all projects">
+                {totalReady} ready
+              </span>
               <span>{totalDone} done</span>
             </div>
             <a
