@@ -25,13 +25,23 @@ For each project found under `ROOT_DIR`:
 - Project name and phase (`research`, `architect`, `implement`, `review`, `done`)
 - Active task counts (in progress, ready, done)
 - Up to three active task titles with their IDs
+- Runner activity: runs in the last 24h and 7d, success rate, average duration
+  (from the `aahp-runner` JSONL metrics)
 - The last agent that touched the project and its `quick_context` summary
 - A relative timestamp ("3m ago") of the last session
 - A link to the project's GitHub repo when the manifest carries one
 
 The page polls itself every 30 seconds via `router.refresh()` so values stay
 current. There is no auth, no database, and no WebSocket. State lives in the
-`MANIFEST.json` files on disk.
+`MANIFEST.json` files on disk and the `aahp-runner` metrics file.
+
+### A note on token tracking
+
+`aahp-runner` writes a JSONL run log but does not currently capture LLM token
+counts. The closest available proxy is `turns` per run. Real token cost views
+require extending `RunMetric` in `aahp-runner` first, then surfacing the field
+here. Tracked as a future-work item in
+[NEXT_ACTIONS.md](.ai/handoff/NEXT_ACTIONS.md).
 
 ## Getting started
 
@@ -51,6 +61,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ROOT_DIR` | `~/Workspace` | Directory the hub scans for `.ai/handoff/MANIFEST.json` files. Should match the root directory configured in `aahp-runner`. |
+| `METRICS_FILE` | `~/.aahp/metrics.jsonl` | Path to the `aahp-runner` JSONL metrics file. Override only if you point `aahp-runner` at a non-default location. |
 
 The scanner walks two levels deep, skips dotfiles and `node_modules`, and
 expects each project to have a `.ai/handoff/MANIFEST.json` at its root. If a

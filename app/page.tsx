@@ -1,4 +1,5 @@
 import { scanProjects, type ProjectSummary, type TaskStatus } from '@/lib/manifest';
+import { formatDuration } from '@/lib/metrics';
 import { AutoRefresh, RefreshButton } from './auto-refresh';
 import { RelativeTime } from './timestamp';
 
@@ -84,6 +85,39 @@ function ProjectCard({ project }: { project: ProjectSummary }): React.ReactEleme
             <li className="text-text-faint">+ {project.activeTasks.length - 3} more</li>
           )}
         </ul>
+      )}
+
+      {project.metrics && project.metrics.totalRuns > 0 && (
+        <div className="grid grid-cols-3 gap-2 text-xs border-t border-border pt-3">
+          <div>
+            <div className="text-text-faint">24h / 7d</div>
+            <div className="font-mono text-text">
+              {project.metrics.runs24h}
+              <span className="text-text-faint"> / </span>
+              {project.metrics.runs7d}
+            </div>
+          </div>
+          <div>
+            <div className="text-text-faint">success</div>
+            <div
+              className={`font-mono ${
+                project.metrics.successRate >= 80
+                  ? 'text-status-done'
+                  : project.metrics.successRate >= 50
+                    ? 'text-status-progress'
+                    : 'text-status-error'
+              }`}
+            >
+              {project.metrics.successRate}%
+            </div>
+          </div>
+          <div>
+            <div className="text-text-faint">avg</div>
+            <div className="font-mono text-text">
+              {formatDuration(project.metrics.avgDurationMs)}
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="text-xs text-text-dim border-t border-border pt-3 mt-auto">
@@ -203,21 +237,50 @@ export default async function Page(): Promise<React.ReactElement> {
           </section>
         )}
 
-        <footer className="mt-12 pt-6 border-t border-border flex items-center justify-between text-xs text-text-faint">
-          <div className="flex gap-4">
-            <span>{result.projects.length} projects</span>
-            <span>{totalInProgress} in progress</span>
-            <span>{totalReady} ready</span>
-            <span>{totalDone} done</span>
+        <footer className="mt-12 pt-6 border-t border-border space-y-2 text-xs text-text-faint">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span>{result.projects.length} projects</span>
+              <span>{totalInProgress} in progress</span>
+              <span>{totalReady} ready</span>
+              <span>{totalDone} done</span>
+            </div>
+            <a
+              href="https://github.com/homeofe/aahp-hub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-accent"
+            >
+              homeofe/aahp-hub
+            </a>
           </div>
-          <a
-            href="https://github.com/homeofe/aahp-hub"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-accent"
-          >
-            homeofe/aahp-hub
-          </a>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {result.metricsAvailable ? (
+              <>
+                <span>
+                  runner: <span className="text-text-dim">{result.totals.totalRuns} runs</span>
+                </span>
+                <span>
+                  24h: <span className="text-text-dim">{result.totals.runs24h}</span>
+                </span>
+                <span>
+                  7d: <span className="text-text-dim">{result.totals.runs7d}</span>
+                </span>
+                <span>
+                  success: <span className="text-text-dim">{result.totals.successRate}%</span>
+                </span>
+                <span className="text-text-faint/70 font-mono">{result.metricsFile}</span>
+              </>
+            ) : result.metricsError ? (
+              <span className="text-status-error">
+                metrics: {result.metricsError}
+              </span>
+            ) : (
+              <span>
+                metrics: no <span className="font-mono">{result.metricsFile}</span> yet
+              </span>
+            )}
+          </div>
         </footer>
       </main>
     </>

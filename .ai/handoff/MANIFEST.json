@@ -4,30 +4,30 @@
   "github_repo": "homeofe/aahp-hub",
   "last_session": {
     "agent": "claude-opus-4-7",
-    "session_id": "scaffold-2026-04-30",
-    "timestamp": "2026-04-30T00:00:00.000Z",
-    "commit": "initial",
+    "session_id": "T-002-2026-04-30",
+    "timestamp": "2026-04-30T01:00:00.000Z",
+    "commit": "T-002 done",
     "phase": "done",
-    "duration_minutes": 30
+    "duration_minutes": 25
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:75b0b52fcda2ca58d97e9da90211b0a287949f91f9aa538e9d2fa7334e27744c",
-      "updated": "2026-04-30T00:00:00Z",
+      "checksum": "sha256:d1564841ceedbab459402c0db923548170fe54ae97de09f1e0a8ea3bdd07d0df",
+      "updated": "2026-04-30T01:00:00Z",
       "lines": 92,
-      "summary": "v0.1.0 scaffold: Next.js 15 + Tailwind v4 dashboard, scanner reads MANIFEST.json under ROOT_DIR, build passing."
+      "summary": "v0.1.0: scaffold + T-002 metrics aggregation. 24h/7d/success/avg-duration per card and global footer."
     },
     "NEXT_ACTIONS.md": {
-      "checksum": "sha256:5fc42b771e3a168330a793c7da3ebe3ffd0f4ed0bf311c2c0ff93f5f24944b76",
-      "updated": "2026-04-30T00:00:00Z",
-      "lines": 52,
-      "summary": "T-001 tests, T-002 token aggregation, T-003 detail page."
+      "checksum": "sha256:27230040e6cd92039cd079bbf5c38219329d921aa786d1f3b0ba7fa142fb4cfe",
+      "updated": "2026-04-30T01:00:00Z",
+      "lines": 75,
+      "summary": "T-001 tests, T-003 live status (WS/SSE), T-004 abort. T-002 done."
     },
     "LOG.md": {
-      "checksum": "sha256:2050897f88015e4d7ebc83798628d92b028ff157ee40689d8a70eb77a41f734a",
-      "updated": "2026-04-30T00:00:00Z",
-      "lines": 57,
-      "summary": "Initial scaffold ADR: Next.js 15, no auth, no DB, polling, Atlas dark theme."
+      "checksum": "sha256:28fe0711f3f2184401c3aaa39d7093eac88e1ac1e5403f593c96ad301a42dff0",
+      "updated": "2026-04-30T01:00:00Z",
+      "lines": 123,
+      "summary": "T-002 ADR: discovered runner does not record tokens, scoped to honest activity stats."
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:79428f478d123e71607b999e0d8283ad972c4b06486dea5a8cd4cba809d3c803",
@@ -36,34 +36,43 @@
       "summary": "Stack rules: Next.js 15 RSC, Tailwind v4 CSS-first, npm only, no em dashes, hub stays read-only."
     }
   },
-  "quick_context": "aahp-hub v0.1.0 - web dashboard for the AAHP runner. Next.js 15 App Router, Tailwind v4, dark theme. Server-side scanner reads .ai/handoff/MANIFEST.json under ROOT_DIR (default ~/Workspace) and renders one card per project with phase, task counts, last agent, and GitHub link. 30s auto-refresh. Read-only, no auth, no DB. Initial scaffold complete; tests are T-001.",
+  "quick_context": "aahp-hub v0.1.0 - web dashboard for the AAHP runner. Next.js 15 App Router, Tailwind v4, dark theme. Scanner reads .ai/handoff/MANIFEST.json under ROOT_DIR (default ~/Workspace). T-002 done: lib/metrics.ts reads ~/.aahp/metrics.jsonl (override via METRICS_FILE) and joins runs/success/duration to each card. Tokens not yet tracked - runner-side change needed. Open: T-001 tests, T-003 live status, T-004 abort.",
   "token_budget": {
-    "manifest_only": 80,
-    "manifest_plus_core": 1100,
-    "full_read": 4000
+    "manifest_only": 90,
+    "manifest_plus_core": 1300,
+    "full_read": 4500
   },
-  "next_task_id": 4,
+  "next_task_id": 5,
   "tasks": {
     "T-001": {
-      "title": "Add unit tests for scanProjects",
+      "title": "Add unit tests for scanProjects and loadMetrics",
       "status": "ready",
       "priority": "medium",
       "depends_on": [],
       "created": "2026-04-30T00:00:00Z"
     },
     "T-002": {
-      "title": "Aggregate token usage from aahp-runner metrics",
+      "title": "Aggregate runner activity stats per project",
+      "status": "done",
+      "priority": "high",
+      "depends_on": [],
+      "created": "2026-04-30T00:00:00Z",
+      "completed": "2026-04-30T01:00:00.000Z",
+      "notes": "lib/metrics.ts reads JSONL, groups by repo, 24h/7d/success/avg-duration. Token tracking deferred (runner-side change required)."
+    },
+    "T-003": {
+      "title": "Live status of running agents (WebSocket or SSE)",
       "status": "ready",
       "priority": "medium",
       "depends_on": [],
-      "created": "2026-04-30T00:00:00Z"
+      "created": "2026-04-30T01:00:00Z"
     },
-    "T-003": {
-      "title": "Per-project detail page",
+    "T-004": {
+      "title": "Abort function for running agents",
       "status": "ready",
-      "priority": "low",
-      "depends_on": [],
-      "created": "2026-04-30T00:00:00Z"
+      "priority": "medium",
+      "depends_on": ["T-003"],
+      "created": "2026-04-30T01:00:00Z"
     }
   }
 }

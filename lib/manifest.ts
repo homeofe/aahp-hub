@@ -2,6 +2,7 @@ import 'server-only';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { loadMetrics, type ProjectMetrics } from './metrics';
 
 export type TaskStatus = 'ready' | 'in_progress' | 'done' | 'blocked' | string;
 
@@ -46,6 +47,7 @@ export interface ProjectSummary {
   quickContext: string;
   lastUpdated: string;
   githubRepo: string | null;
+  metrics: ProjectMetrics | null;
 }
 
 export interface ScanResult {
@@ -53,6 +55,15 @@ export interface ScanResult {
   errors: { path: string; message: string }[];
   rootDir: string | null;
   scannedAt: string;
+  metricsFile: string;
+  metricsAvailable: boolean;
+  metricsError: string | null;
+  totals: {
+    totalRuns: number;
+    runs24h: number;
+    runs7d: number;
+    successRate: number;
+  };
 }
 
 const MANIFEST_REL_PATH = ['.ai', 'handoff', 'MANIFEST.json'];
@@ -117,7 +128,11 @@ async function findManifests(root: string): Promise<string[]> {
   return found;
 }
 
-function summarize(manifestPath: string, manifest: RawManifest): ProjectSummary {
+function summarize(
+  manifestPath: string,
+  manifest: RawManifest,
+  metricsByProject: Map<string, ProjectMetrics>,
+): ProjectSummary {
   const projectPath = manifestPath.replace(/[\\/]\.ai[\\/]handoff[\\/]MANIFEST\.json$/, '');
   const name = manifest.project ?? projectPath.split(/[\\/]/).pop() ?? 'unknown';
   const tasks = manifest.tasks ?? {};
@@ -144,15 +159,23 @@ function summarize(manifestPath: string, manifest: RawManifest): ProjectSummary 
     quickContext: manifest.quick_context ?? '',
     lastUpdated: manifest.last_session?.timestamp ?? '',
     githubRepo: manifest.github_repo ?? null,
+    metrics: metricsByProject.get(name) ?? null,
   };
 }
 
 export async function scanProjects(): Promise<ScanResult> {
   const rootDir = resolveRootDir();
   const scannedAt = new Date().toISOString();
+  const metrics = await loadMetrics();
+  const metricsMeta = {
+    metricsFile: metrics.metricsFile,
+    metricsAvailable: metrics.available,
+    metricsError: metrics.error,
+    totals: metrics.totals,
+  };
 
   if (!rootDir) {
-    return { projects: [], errors: [], rootDir: null, scannedAt };
+    return { projects: [], errors: [], rootDir: null, scannedAt, ...metricsMeta };
   }
 
   const errors: { path: string; message: string }[] = [];
@@ -161,7 +184,7 @@ export async function scanProjects(): Promise<ScanResult> {
     manifestPaths = await findManifests(rootDir);
   } catch (err) {
     errors.push({ path: rootDir, message: err instanceof Error ? err.message : String(err) });
-    return { projects: [], errors, rootDir, scannedAt };
+    return { projects: [], errors, rootDir, scannedAt, ...metricsMeta };
   }
 
   const projects: ProjectSummary[] = [];
@@ -169,7 +192,7 @@ export async function scanProjects(): Promise<ScanResult> {
     try {
       const raw = await readFile(manifestPath, 'utf8');
       const manifest = parseManifest(raw);
-      projects.push(summarize(manifestPath, manifest));
+      projects.push(summarize(manifestPath, manifest, metrics.byProject));
     } catch (err) {
       errors.push({
         path: manifestPath,
@@ -184,7 +207,7 @@ export async function scanProjects(): Promise<ScanResult> {
     return bTime.localeCompare(aTime);
   });
 
-  return { projects, errors, rootDir, scannedAt };
+  return { projects, errors, rootDir, scannedAt, ...metricsMeta };
 }
 
 export function rootDirIsConfigured(): boolean {
