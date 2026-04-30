@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { formatDuration, loadMetrics } from './metrics';
+import { formatDuration, formatTokens, loadMetrics } from './metrics';
 
 let tmpRoot: string;
 let metricsFile: string;
@@ -126,6 +126,100 @@ describe('loadMetrics', () => {
     expect(a.lastRunAt).toBe(later);
     expect(a.lastRunSuccess).toBe(true);
     expect(a.lastRunBackend).toBe('claude-cli');
+  });
+});
+
+describe('token aggregation', () => {
+  it('sums tokens across runs and computes cache hit rate', async () => {
+    writeFileSync(
+      metricsFile,
+      [
+        metric({
+          repo: 'a',
+          inputTokens: 100,
+          outputTokens: 50,
+          cacheReadTokens: 400,
+          cacheCreationTokens: 20,
+        }),
+        metric({
+          repo: 'a',
+          inputTokens: 200,
+          outputTokens: 60,
+          cacheReadTokens: 100,
+        }),
+        metric({ repo: 'a' }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const result = await loadMetrics();
+    const tokens = result.byProject.get('a')!.tokens;
+    expect(tokens.inputTokens).toBe(300);
+    expect(tokens.outputTokens).toBe(110);
+    expect(tokens.cacheReadTokens).toBe(500);
+    expect(tokens.cacheCreationTokens).toBe(20);
+    expect(tokens.recordedRuns).toBe(2);
+    expect(tokens.cacheHitRate).toBe(63);
+  });
+
+  it('reports zero cacheHitRate when there are no token records', async () => {
+    writeFileSync(metricsFile, [metric({ repo: 'a' })].join('\n'), 'utf8');
+    const result = await loadMetrics();
+    expect(result.byProject.get('a')!.tokens.recordedRuns).toBe(0);
+    expect(result.byProject.get('a')!.tokens.cacheHitRate).toBe(0);
+  });
+
+  it('windows token totals to the last 24h', async () => {
+    const now = Date.now();
+    const oneHourAgo = new Date(now - 60 * 60 * 1000).toISOString();
+    const eightDaysAgo = new Date(now - 8 * 24 * 60 * 60 * 1000).toISOString();
+    writeFileSync(
+      metricsFile,
+      [
+        metric({ repo: 'a', timestamp: oneHourAgo, inputTokens: 100, outputTokens: 50 }),
+        metric({ repo: 'a', timestamp: eightDaysAgo, inputTokens: 9000, outputTokens: 5000 }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const a = (await loadMetrics()).byProject.get('a')!;
+    expect(a.tokens.inputTokens).toBe(9100);
+    expect(a.tokens24h.inputTokens).toBe(100);
+    expect(a.tokens24h.outputTokens).toBe(50);
+  });
+
+  it('counts aborted runs separately', async () => {
+    writeFileSync(
+      metricsFile,
+      [
+        metric({ repo: 'a', success: false, aborted: true }),
+        metric({ repo: 'a', success: true }),
+        metric({ repo: 'a', success: false }),
+      ].join('\n'),
+      'utf8',
+    );
+    const a = (await loadMetrics()).byProject.get('a')!;
+    expect(a.abortedRuns).toBe(1);
+    expect(a.totalRuns).toBe(3);
+  });
+});
+
+describe('formatTokens', () => {
+  it('formats raw counts under 1000', () => {
+    expect(formatTokens(0)).toBe('0');
+    expect(formatTokens(42)).toBe('42');
+    expect(formatTokens(999)).toBe('999');
+  });
+
+  it('formats thousands with one decimal under 10k, none above', () => {
+    expect(formatTokens(1500)).toBe('1.5k');
+    expect(formatTokens(15000)).toBe('15k');
+    expect(formatTokens(999_999)).toBe('1000k');
+  });
+
+  it('formats millions', () => {
+    expect(formatTokens(1_500_000)).toBe('1.5M');
+    expect(formatTokens(20_000_000)).toBe('20M');
   });
 });
 

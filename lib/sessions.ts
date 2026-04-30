@@ -17,6 +17,7 @@ export interface SessionsResult {
   sessions: ActiveSession[];
   sessionsFile: string;
   updatedAt: string | null;
+  controlPort: number | null;
   available: boolean;
   error: string | null;
 }
@@ -33,6 +34,7 @@ interface RawSession {
 interface RawSessionsFile {
   updatedAt?: unknown;
   sessions?: unknown;
+  controlPort?: unknown;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -106,6 +108,7 @@ export async function loadSessions(): Promise<SessionsResult> {
         sessions: [],
         sessionsFile: file,
         updatedAt: null,
+        controlPort: null,
         available: false,
         error: null,
       };
@@ -114,6 +117,7 @@ export async function loadSessions(): Promise<SessionsResult> {
       sessions: [],
       sessionsFile: file,
       updatedAt: null,
+      controlPort: null,
       available: false,
       error: err instanceof Error ? err.message : String(err),
     };
@@ -127,6 +131,7 @@ export async function loadSessions(): Promise<SessionsResult> {
       sessions: [],
       sessionsFile: file,
       updatedAt: null,
+      controlPort: null,
       available: false,
       error: err instanceof Error ? err.message : String(err),
     };
@@ -137,6 +142,7 @@ export async function loadSessions(): Promise<SessionsResult> {
       sessions: [],
       sessionsFile: file,
       updatedAt: null,
+      controlPort: null,
       available: true,
       error: 'sessions.json root is not an object',
     };
@@ -144,6 +150,13 @@ export async function loadSessions(): Promise<SessionsResult> {
 
   const data = parsed as RawSessionsFile;
   const updatedAt = typeof data.updatedAt === 'string' ? data.updatedAt : null;
+  const controlPort =
+    typeof data.controlPort === 'number' &&
+    Number.isInteger(data.controlPort) &&
+    data.controlPort > 0 &&
+    data.controlPort < 65_536
+      ? data.controlPort
+      : null;
   const arr = Array.isArray(data.sessions) ? data.sessions : [];
 
   const sessions: ActiveSession[] = [];
@@ -158,9 +171,19 @@ export async function loadSessions(): Promise<SessionsResult> {
     sessions,
     sessionsFile: file,
     updatedAt,
+    controlPort,
     available: true,
     error: null,
   };
+}
+
+/**
+ * Read the runner's control port from sessions.json. Returns null when the
+ * runner is not currently exposing one (it removes the key on shutdown).
+ */
+export async function readControlPort(): Promise<number | null> {
+  const result = await loadSessions();
+  return result.controlPort;
 }
 
 export async function watchTargets(): Promise<{ path: string; mtimeMs: number | null }[]> {

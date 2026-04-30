@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadSessions, sessionsFilePath } from './sessions';
+import { loadSessions, readControlPort, sessionsFilePath } from './sessions';
 
 let tmpRoot: string;
 let sessionsFile: string;
@@ -137,5 +137,48 @@ describe('loadSessions', () => {
     const result = await loadSessions();
     expect(result.error).not.toBeNull();
     expect(result.sessions).toHaveLength(0);
+  });
+
+  it('reads controlPort when valid', async () => {
+    writeFileSync(
+      sessionsFile,
+      JSON.stringify({ controlPort: 47921, sessions: [] }),
+      'utf8',
+    );
+    const result = await loadSessions();
+    expect(result.controlPort).toBe(47921);
+  });
+
+  it('rejects controlPort outside the valid TCP range', async () => {
+    for (const bad of [0, -1, 70000, 1.5, 'not a number']) {
+      writeFileSync(
+        sessionsFile,
+        JSON.stringify({ controlPort: bad, sessions: [] }),
+        'utf8',
+      );
+      const result = await loadSessions();
+      expect(result.controlPort).toBeNull();
+    }
+  });
+
+  it('returns null controlPort when the field is absent', async () => {
+    writeFileSync(sessionsFile, JSON.stringify({ sessions: [] }), 'utf8');
+    const result = await loadSessions();
+    expect(result.controlPort).toBeNull();
+  });
+});
+
+describe('readControlPort', () => {
+  it('returns the port when sessions.json exposes one', async () => {
+    writeFileSync(
+      sessionsFile,
+      JSON.stringify({ controlPort: 50000, sessions: [] }),
+      'utf8',
+    );
+    expect(await readControlPort()).toBe(50000);
+  });
+
+  it('returns null when the file is missing', async () => {
+    expect(await readControlPort()).toBeNull();
   });
 });

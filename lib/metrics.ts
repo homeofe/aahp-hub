@@ -15,6 +15,21 @@ export interface RunMetric {
   committed: boolean;
   cpuAvg?: number;
   memPeakMB?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
+  modelId?: string;
+  aborted?: boolean;
+}
+
+export interface TokenStats {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  cacheHitRate: number;
+  recordedRuns: number;
 }
 
 export interface ProjectMetrics {
@@ -27,6 +42,9 @@ export interface ProjectMetrics {
   lastRunAt: string | null;
   lastRunSuccess: boolean | null;
   lastRunBackend: string | null;
+  abortedRuns: number;
+  tokens: TokenStats;
+  tokens24h: TokenStats;
 }
 
 export interface MetricsResult {
@@ -36,6 +54,9 @@ export interface MetricsResult {
     runs24h: number;
     runs7d: number;
     successRate: number;
+    abortedRuns: number;
+    tokens: TokenStats;
+    tokens24h: TokenStats;
   };
   metricsFile: string;
   available: boolean;
@@ -55,6 +76,11 @@ function metricsFilePath(): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function pickNumber(raw: Record<string, unknown>, key: string): number | undefined {
+  const value = raw[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function parseLine(line: string): RunMetric | null {
@@ -78,8 +104,59 @@ function parseLine(line: string): RunMetric | null {
     turns: typeof raw['turns'] === 'number' ? raw['turns'] : 0,
     success: raw['success'] === true,
     committed: raw['committed'] === true,
-    cpuAvg: typeof raw['cpuAvg'] === 'number' ? raw['cpuAvg'] : undefined,
-    memPeakMB: typeof raw['memPeakMB'] === 'number' ? raw['memPeakMB'] : undefined,
+    cpuAvg: pickNumber(raw, 'cpuAvg'),
+    memPeakMB: pickNumber(raw, 'memPeakMB'),
+    inputTokens: pickNumber(raw, 'inputTokens'),
+    outputTokens: pickNumber(raw, 'outputTokens'),
+    cacheReadTokens: pickNumber(raw, 'cacheReadTokens'),
+    cacheCreationTokens: pickNumber(raw, 'cacheCreationTokens'),
+    modelId: typeof raw['modelId'] === 'string' ? raw['modelId'] : undefined,
+    aborted: raw['aborted'] === true,
+  };
+}
+
+function emptyTokenStats(): TokenStats {
+  return {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    cacheHitRate: 0,
+    recordedRuns: 0,
+  };
+}
+
+function accumulateTokens(stats: TokenStats, m: RunMetric): void {
+  if (
+    m.inputTokens === undefined &&
+    m.outputTokens === undefined &&
+    m.cacheReadTokens === undefined &&
+    m.cacheCreationTokens === undefined
+  ) {
+    return;
+  }
+  stats.inputTokens += m.inputTokens ?? 0;
+  stats.outputTokens += m.outputTokens ?? 0;
+  stats.cacheReadTokens += m.cacheReadTokens ?? 0;
+  stats.cacheCreationTokens += m.cacheCreationTokens ?? 0;
+  stats.recordedRuns += 1;
+}
+
+function finaliseTokens(stats: TokenStats): void {
+  const cachePool = stats.cacheReadTokens + stats.inputTokens;
+  stats.cacheHitRate =
+    cachePool > 0 ? Math.round((stats.cacheReadTokens / cachePool) * 100) : 0;
+}
+
+function emptyTotals(): MetricsResult['totals'] {
+  return {
+    totalRuns: 0,
+    runs24h: 0,
+    runs7d: 0,
+    successRate: 0,
+    abortedRuns: 0,
+    tokens: emptyTokenStats(),
+    tokens24h: emptyTokenStats(),
   };
 }
 
@@ -90,10 +167,13 @@ function summarize(entries: RunMetric[], now: number): ProjectMetrics {
   let runs24h = 0;
   let runs7d = 0;
   let successCount = 0;
+  let abortedRuns = 0;
   let totalDuration = 0;
   let totalTurns = 0;
   let lastTs = -Infinity;
   let lastEntry: RunMetric | null = null;
+  const tokens = emptyTokenStats();
+  const tokens24h = emptyTokenStats();
 
   for (const m of entries) {
     const ts = Date.parse(m.timestamp);
@@ -101,13 +181,19 @@ function summarize(entries: RunMetric[], now: number): ProjectMetrics {
     if (ts >= cutoff24h) runs24h++;
     if (ts >= cutoff7d) runs7d++;
     if (m.success) successCount++;
+    if (m.aborted) abortedRuns++;
     totalDuration += m.durationMs;
     totalTurns += m.turns;
+    accumulateTokens(tokens, m);
+    if (ts >= cutoff24h) accumulateTokens(tokens24h, m);
     if (ts > lastTs) {
       lastTs = ts;
       lastEntry = m;
     }
   }
+
+  finaliseTokens(tokens);
+  finaliseTokens(tokens24h);
 
   const total = entries.length;
   return {
@@ -120,6 +206,9 @@ function summarize(entries: RunMetric[], now: number): ProjectMetrics {
     lastRunAt: lastEntry ? lastEntry.timestamp : null,
     lastRunSuccess: lastEntry ? lastEntry.success : null,
     lastRunBackend: lastEntry ? lastEntry.backend : null,
+    abortedRuns,
+    tokens,
+    tokens24h,
   };
 }
 
@@ -133,7 +222,7 @@ export async function loadMetrics(): Promise<MetricsResult> {
     if (code === 'ENOENT') {
       return {
         byProject: new Map(),
-        totals: { totalRuns: 0, runs24h: 0, runs7d: 0, successRate: 0 },
+        totals: emptyTotals(),
         metricsFile: file,
         available: false,
         error: null,
@@ -141,7 +230,7 @@ export async function loadMetrics(): Promise<MetricsResult> {
     }
     return {
       byProject: new Map(),
-      totals: { totalRuns: 0, runs24h: 0, runs7d: 0, successRate: 0 },
+      totals: emptyTotals(),
       metricsFile: file,
       available: false,
       error: err instanceof Error ? err.message : String(err),
@@ -179,11 +268,21 @@ export async function loadMetrics(): Promise<MetricsResult> {
       runs24h: totals.runs24h,
       runs7d: totals.runs7d,
       successRate: totals.successRate,
+      abortedRuns: totals.abortedRuns,
+      tokens: totals.tokens,
+      tokens24h: totals.tokens24h,
     },
     metricsFile: file,
     available: true,
     error: null,
   };
+}
+
+export function formatTokens(n: number): string {
+  if (n <= 0) return '0';
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
+  return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0)}M`;
 }
 
 export function formatDuration(ms: number): string {

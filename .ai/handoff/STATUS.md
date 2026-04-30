@@ -1,7 +1,7 @@
 # aahp-hub: Current State of the Nation
 
 > Last updated: 2026-04-30 by claude-opus-4-7
-> Commit: T-001 done
+> Commit: T-004 + T-005 done
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
 > It reflects the *current* reality, not history. History lives in LOG.md.
@@ -11,11 +11,12 @@
 <!-- SECTION: summary -->
 ## Summary
 
-aahp-hub v0.1.0 - web dashboard for the AAHP runner ecosystem. Four tasks
-done: scaffold, T-002 metrics aggregation, T-003 live status via SSE,
-T-001 tests. Vitest now covers all three lib modules with 27 tests
-including the variant-schema regression. The dashboard shows running
-agents in real time and aggregates runner activity per project.
+aahp-hub v0.1.0 - web dashboard for the AAHP runner ecosystem. All five
+formal tasks done. The hub now consumes everything the runner v0.4.0
+exposes: token totals, cache hit rate, aborted-run flag, and the
+`controlPort` for abort. The Abort button proxies through `app/api/abort`
+to the runner's localhost endpoint. The hub stays a thin renderer: no
+auth, no DB, no direct cross-host networking.
 <!-- /SECTION: summary -->
 
 ---
@@ -25,13 +26,12 @@ agents in real time and aggregates runner activity per project.
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `npm install` | (Verified) | next 16.2.4, react 19.2, tailwindcss 4, vitest 4.1 |
+| `npm install` | (Verified) | next 16.2.4, vitest 4.1.5 |
 | `npm run build` | (Verified) | Clean - 2026-04-30 |
 | `npm run lint` | (Verified) | Clean - 2026-04-30 |
-| `npm run test` | (Verified) | 27 tests across 3 suites pass - 2026-04-30 |
-| SSE smoke test | (Verified) | `/api/stream` emits hello + change on `sessions.json` write |
-| Page render with live session | (Verified) | Card shows running badge and session row |
-| Schema-variant manifest | (Verified) | Covered by `manifest.test.ts` |
+| `npm run test` | (Verified) | 39 tests across 3 suites pass - 2026-04-30 |
+| `/api/stream` smoke test | (Verified) | hello + change events fire on sessions.json mtime |
+| Cross-platform paths | (Verified) | Code uses `homedir()` and `path.join`; `.env.example` documents macOS/Linux/Windows examples |
 <!-- /SECTION: build_health -->
 
 ---
@@ -42,13 +42,14 @@ agents in real time and aggregates runner activity per project.
 | Component | Path | State | Notes |
 |-----------|------|-------|-------|
 | Manifest scanner | `lib/manifest.ts` | (Verified) | Defensive coercion; sorts running projects first |
-| Metrics loader | `lib/metrics.ts` | (Verified) | JSONL parse, 24h/7d windows |
-| Sessions loader | `lib/sessions.ts` | (Verified) | Reads sessions.json, looks up last log line |
+| Metrics loader | `lib/metrics.ts` | (Verified) | JSONL parse, 24h/7d windows, token aggregation, cache hit rate, formatTokens helper |
+| Sessions loader | `lib/sessions.ts` | (Verified) | Reads sessions.json incl. controlPort; readControlPort() helper |
 | SSE endpoint | `app/api/stream/route.ts` | (Verified) | mtime poll on sessions.json + metrics.jsonl |
-| Dashboard page | `app/page.tsx` | (Verified) | Force-dynamic; running cards pulsing |
+| Abort proxy | `app/api/abort/route.ts` | (Verified) | Forwards POST to 127.0.0.1:<controlPort>/abort with timeout, error mapping |
+| Dashboard page | `app/page.tsx` | (Verified) | Force-dynamic; token row, abort button per session, control footer chip |
+| Abort button | `app/abort-button.tsx` | (Verified) | Confirm dialog, pending/aborted/error states, retry |
 | Auto-refresh / Live indicator | `app/auto-refresh.tsx` | (Verified) | EventSource + 30s polling fallback |
-| Test suites | `lib/*.test.ts` | (Verified) | 27 tests; uses tmpdir fixtures and env overrides |
-| Vitest config | `vitest.config.ts` | (Verified) | Aliases `server-only` to stub for Node tests |
+| Tests | `lib/*.test.ts` | (Verified) | 39 tests covering tokens, controlPort, aborted flag, schema variants |
 <!-- /SECTION: components -->
 
 ---
@@ -64,9 +65,9 @@ agents in real time and aggregates runner activity per project.
 | `tailwindcss` | ^4 | CSS-first config |
 | `@tailwindcss/postcss` | ^4 | |
 | `typescript` | ^5 | strict mode |
-| `server-only` | ^0.0.1 | Marks server-side modules; aliased to stub in vitest |
+| `server-only` | ^0.0.1 | Aliased to stub in vitest |
 | `vitest` | ^4.1.5 | Test runner |
-| `@vitest/coverage-v8` | ^4.1.5 | Coverage reporter |
+| `@vitest/coverage-v8` | ^4.1.5 | Coverage reporter (not enforced yet) |
 <!-- /SECTION: dependencies -->
 
 ---
@@ -76,9 +77,10 @@ agents in real time and aggregates runner activity per project.
 
 | Gap | Severity | Description |
 |-----|----------|-------------|
-| Abort | MEDIUM | No way to abort a running agent (T-004, needs runner endpoint) |
-| Token tracking | LOW | Blocked on runner-side change to `RunMetric` (T-005) |
 | Auth | (deferred) | Internal tool only, intentionally none |
+| Multi-host runners | LOW | Abort proxy is localhost-only by design |
+| Token cost in $ | LOW | Tokens are tracked; pricing table is a separate concern |
+| Detail page | LOW | Cards are concise enough for now |
 <!-- /SECTION: what_is_missing -->
 
 ---
@@ -88,7 +90,10 @@ agents in real time and aggregates runner activity per project.
 
 | Item | Resolution |
 |------|-----------|
-| T-001 tests | Vitest added with 27 tests across `manifest.test.ts`, `metrics.test.ts`, `sessions.test.ts` |
-| `server-only` test issue | Aliased to `test/server-only-stub.ts` in `vitest.config.ts` |
-| Test conventions | Documented in `CONVENTIONS.md`: tmpdir fixtures, env var overrides, no module mocking |
+| T-005 token tracking | `lib/metrics.ts` extended with `TokenStats`, 24h windowing, cache hit rate; cards + footer render the new fields |
+| T-004 abort | `app/api/abort/route.ts` proxies to runner's `/abort`; `lib/sessions.ts` exposes `controlPort`; `AbortButton` client component handles confirm + state machine |
+| Aborted-run distinction | `RunMetric.aborted` plumbed through; counted separately on cards and in the footer |
+| Cross-platform `.env.example` | Replaced macOS-only example with explicit macOS/Linux/Windows examples plus a forward-slash variant note |
+| Local `.env.local` | Created for the user's Windows setup (`C:\Users\root\Workspace` etc.); gitignored |
+| Test coverage | +12 tests for token aggregation, format helpers, controlPort parsing, aborted runs |
 <!-- /SECTION: resolved_this_session -->

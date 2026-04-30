@@ -4,30 +4,30 @@
   "github_repo": "homeofe/aahp-hub",
   "last_session": {
     "agent": "claude-opus-4-7",
-    "session_id": "T-001-2026-04-30",
-    "timestamp": "2026-04-30T14:00:00.000Z",
-    "commit": "T-001 done",
+    "session_id": "T-004-T-005-2026-04-30",
+    "timestamp": "2026-04-30T16:15:00.000Z",
+    "commit": "T-004 + T-005 done",
     "phase": "done",
-    "duration_minutes": 30
+    "duration_minutes": 50
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:9eac81317ec9b8ec3459b7047f4f293a2d371045d7070e1330bfb9fa9b6baddc",
-      "updated": "2026-04-30T14:00:00Z",
-      "lines": 94,
-      "summary": "v0.1.0: scaffold + T-002 metrics + T-003 SSE + T-001 tests. 27/27 green."
+      "checksum": "sha256:24f83a2bbe7153c448ac32046a66ff930ba3d8b78b1f63b0416a51f86336ae81",
+      "updated": "2026-04-30T16:15:00Z",
+      "lines": 99,
+      "summary": "v0.1.0: full hub-side roadmap done. 39 tests, build + lint clean. Tokens, abort, cross-platform env."
     },
     "NEXT_ACTIONS.md": {
-      "checksum": "sha256:2764af8c6c5faf3ff4fcf770fa21906e5d88a5d8520b220a0fa1f016be22fa39",
-      "updated": "2026-04-30T14:00:00Z",
-      "lines": 56,
-      "summary": "T-004 abort (runner endpoint), T-005 token tracking (runner-side). All hub-side work for the user TODO is done."
+      "checksum": "sha256:3cc5da5e8a98277bda19b17123abe893c5ebc3a5c3246260c41c172cc61667b2",
+      "updated": "2026-04-30T16:15:00Z",
+      "lines": 41,
+      "summary": "All 5 formal tasks done. Future work: filtering, sorting, detail page, GH PRs, log tail, $ pricing, multi-host."
     },
     "LOG.md": {
-      "checksum": "sha256:e2fb1d56192871bd09bd309421510cee8313c5dca4cded830c3b1ec10863a3ea",
-      "updated": "2026-04-30T14:00:00Z",
-      "lines": 275,
-      "summary": "T-001 ADR: vitest with real filesystem fixtures, env var overrides, server-only stub."
+      "checksum": "sha256:7c98d5d94969f33cc3998878e59c005ed9fb6ba9402cca50fca051e4e7b46e08",
+      "updated": "2026-04-30T16:15:00Z",
+      "lines": 370,
+      "summary": "T-004 + T-005 ADR: hub never talks to runner direct from browser, /api/abort proxies to localhost; tokens/cache rate computed from RunMetric extras."
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",
@@ -36,11 +36,11 @@
       "summary": "Stack rules + test conventions: vitest + tmpdir fixtures + env overrides + server-only stub."
     }
   },
-  "quick_context": "aahp-hub v0.1.0 - web dashboard for the AAHP runner. Four tasks done. T-001 just landed: vitest with 27 tests across lib/manifest.test.ts, lib/metrics.test.ts, lib/sessions.test.ts. Real filesystem fixtures via mkdtempSync, env var overrides, no module mocks. server-only aliased to a stub in vitest.config.ts. Open: T-004 abort and T-005 token tracking, both blocked on runner-side changes.",
+  "quick_context": "aahp-hub v0.1.0 - web dashboard for the AAHP runner. All 5 formal tasks done. T-004 + T-005 just landed against aahp-runner v0.4.0. Token totals + cache hit rate per project, Abort button on each running-session row that proxies through /api/abort to 127.0.0.1:<controlPort>/abort. Hub never talks to runner directly from browser. .env.example now shows macOS/Linux/Windows examples; .env.local created for the dev machine. 39 vitest tests across 3 lib modules.",
   "token_budget": {
     "manifest_only": 100,
-    "manifest_plus_core": 1500,
-    "full_read": 6000
+    "manifest_plus_core": 1700,
+    "full_read": 7500
   },
   "next_task_id": 6,
   "tasks": {
@@ -50,8 +50,7 @@
       "priority": "medium",
       "depends_on": [],
       "created": "2026-04-30T00:00:00Z",
-      "completed": "2026-04-30T14:00:00.000Z",
-      "notes": "27 tests. Vitest 4.1, tmpdir fixtures, env overrides, server-only aliased."
+      "completed": "2026-04-30T14:00:00.000Z"
     },
     "T-002": {
       "title": "Aggregate runner activity stats per project",
@@ -71,19 +70,21 @@
     },
     "T-004": {
       "title": "Abort function for running agents",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "depends_on": [],
       "created": "2026-04-30T01:00:00Z",
-      "notes": "Requires a runner-side endpoint. Track that change as an issue on homeofe/aahp-runner first."
+      "completed": "2026-04-30T16:15:00.000Z",
+      "notes": "/api/abort proxies to runner's 127.0.0.1:<controlPort>/abort. Disabled when port absent. Confirm dialog + three-state UI."
     },
     "T-005": {
-      "title": "Token tracking (runner-side prerequisite)",
-      "status": "ready",
+      "title": "Token tracking",
+      "status": "done",
       "priority": "medium",
       "depends_on": [],
       "created": "2026-04-30T13:30:00Z",
-      "notes": "Blocked on aahp-runner extending RunMetric with token totals. Hub-side work is small once that ships."
+      "completed": "2026-04-30T16:15:00.000Z",
+      "notes": "RunMetric token fields aggregated, cache hit rate computed (cacheRead / (cacheRead + input)). 24h window also computed for future sparkline."
     }
   }
 }

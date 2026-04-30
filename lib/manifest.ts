@@ -2,7 +2,7 @@ import 'server-only';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { loadMetrics, type ProjectMetrics } from './metrics';
+import { loadMetrics, type MetricsResult, type ProjectMetrics } from './metrics';
 import { loadSessions, type ActiveSession } from './sessions';
 
 export type TaskStatus = 'ready' | 'in_progress' | 'done' | 'blocked' | string;
@@ -60,17 +60,13 @@ export interface ScanResult {
   metricsFile: string;
   metricsAvailable: boolean;
   metricsError: string | null;
-  totals: {
-    totalRuns: number;
-    runs24h: number;
-    runs7d: number;
-    successRate: number;
-  };
+  totals: MetricsResult['totals'];
   activeSessions: ActiveSession[];
   sessionsFile: string;
   sessionsAvailable: boolean;
   sessionsError: string | null;
   orphanSessions: ActiveSession[];
+  controlPort: number | null;
 }
 
 const MANIFEST_REL_PATH = ['.ai', 'handoff', 'MANIFEST.json'];
@@ -251,6 +247,7 @@ export async function scanProjects(): Promise<ScanResult> {
     sessionsFile: sessionsRes.sessionsFile,
     sessionsAvailable: sessionsRes.available,
     sessionsError: sessionsRes.error,
+    controlPort: sessionsRes.controlPort,
   };
 
   if (!rootDir) {

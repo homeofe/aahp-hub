@@ -1,6 +1,7 @@
 import { scanProjects, type ProjectSummary, type TaskStatus } from '@/lib/manifest';
-import { formatDuration } from '@/lib/metrics';
+import { formatDuration, formatTokens, type TokenStats } from '@/lib/metrics';
 import type { ActiveSession } from '@/lib/sessions';
+import { AbortButton } from './abort-button';
 import { AutoRefresh, LiveIndicator, RefreshButton } from './auto-refresh';
 import { RelativeTime } from './timestamp';
 
@@ -37,8 +38,22 @@ function phaseColor(phase: string): string {
   }
 }
 
-function ProjectCard({ project }: { project: ProjectSummary }): React.ReactElement {
+function tokensRecorded(stats: TokenStats): boolean {
+  return (
+    stats.recordedRuns > 0 &&
+    (stats.inputTokens > 0 || stats.outputTokens > 0 || stats.cacheReadTokens > 0)
+  );
+}
+
+function ProjectCard({
+  project,
+  controlPortAvailable,
+}: {
+  project: ProjectSummary;
+  controlPortAvailable: boolean;
+}): React.ReactElement {
   const isRunning = project.activeSessions.length > 0;
+  const showTokens = project.metrics ? tokensRecorded(project.metrics.tokens) : false;
   return (
     <div
       className={`rounded-lg border ${
@@ -68,9 +83,13 @@ function ProjectCard({ project }: { project: ProjectSummary }): React.ReactEleme
       </div>
 
       {isRunning && (
-        <div className="rounded border border-status-done/40 bg-status-done/10 p-2 text-xs space-y-1">
+        <div className="rounded border border-status-done/40 bg-status-done/10 p-2 text-xs space-y-1.5">
           {project.activeSessions.map((s) => (
-            <ActiveSessionRow key={`${s.repoName}-${s.taskId}-${s.startedAt}`} session={s} />
+            <ActiveSessionRow
+              key={`${s.repoName}-${s.taskId}-${s.startedAt}`}
+              session={s}
+              controlPortAvailable={controlPortAvailable}
+            />
           ))}
         </div>
       )}
@@ -108,35 +127,73 @@ function ProjectCard({ project }: { project: ProjectSummary }): React.ReactEleme
       )}
 
       {project.metrics && project.metrics.totalRuns > 0 && (
-        <div className="grid grid-cols-3 gap-2 text-xs border-t border-border pt-3">
-          <div>
-            <div className="text-text-faint">24h / 7d</div>
-            <div className="font-mono text-text">
-              {project.metrics.runs24h}
-              <span className="text-text-faint"> / </span>
-              {project.metrics.runs7d}
+        <div className="space-y-2 border-t border-border pt-3">
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <div className="text-text-faint">24h / 7d</div>
+              <div className="font-mono text-text">
+                {project.metrics.runs24h}
+                <span className="text-text-faint"> / </span>
+                {project.metrics.runs7d}
+              </div>
+            </div>
+            <div>
+              <div className="text-text-faint">success</div>
+              <div
+                className={`font-mono ${
+                  project.metrics.successRate >= 80
+                    ? 'text-status-done'
+                    : project.metrics.successRate >= 50
+                      ? 'text-status-progress'
+                      : 'text-status-error'
+                }`}
+              >
+                {project.metrics.successRate}%
+              </div>
+            </div>
+            <div>
+              <div className="text-text-faint">avg</div>
+              <div className="font-mono text-text">
+                {formatDuration(project.metrics.avgDurationMs)}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-text-faint">success</div>
-            <div
-              className={`font-mono ${
-                project.metrics.successRate >= 80
-                  ? 'text-status-done'
-                  : project.metrics.successRate >= 50
-                    ? 'text-status-progress'
-                    : 'text-status-error'
-              }`}
-            >
-              {project.metrics.successRate}%
+          {showTokens && (
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <div className="text-text-faint">tokens in / out</div>
+                <div className="font-mono text-text">
+                  {formatTokens(project.metrics.tokens.inputTokens)}
+                  <span className="text-text-faint"> / </span>
+                  {formatTokens(project.metrics.tokens.outputTokens)}
+                </div>
+              </div>
+              <div>
+                <div className="text-text-faint">cache hit</div>
+                <div
+                  className={`font-mono ${
+                    project.metrics.tokens.cacheHitRate >= 60
+                      ? 'text-status-done'
+                      : project.metrics.tokens.cacheHitRate >= 30
+                        ? 'text-status-progress'
+                        : 'text-text-dim'
+                  }`}
+                >
+                  {project.metrics.tokens.cacheHitRate}%
+                </div>
+              </div>
+              <div>
+                <div className="text-text-faint">aborted</div>
+                <div
+                  className={`font-mono ${
+                    project.metrics.abortedRuns > 0 ? 'text-status-blocked' : 'text-text-dim'
+                  }`}
+                >
+                  {project.metrics.abortedRuns}
+                </div>
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="text-text-faint">avg</div>
-            <div className="font-mono text-text">
-              {formatDuration(project.metrics.avgDurationMs)}
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -171,18 +228,32 @@ function ProjectCard({ project }: { project: ProjectSummary }): React.ReactEleme
   );
 }
 
-function ActiveSessionRow({ session }: { session: ActiveSession }): React.ReactElement {
+function ActiveSessionRow({
+  session,
+  controlPortAvailable,
+}: {
+  session: ActiveSession;
+  controlPortAvailable: boolean;
+}): React.ReactElement {
   return (
     <div className="space-y-0.5">
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-status-done shrink-0">
           {session.taskId} {session.backend}
         </span>
-        {session.startedAt && (
-          <span className="text-text-faint">
-            <RelativeTime iso={session.startedAt} />
-          </span>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {session.startedAt && (
+            <span className="text-text-faint">
+              <RelativeTime iso={session.startedAt} />
+            </span>
+          )}
+          <AbortButton
+            repoName={session.repoName}
+            taskId={session.taskId}
+            disabled={!controlPortAvailable}
+            disabledReason="runner is not exposing controlPort (is `aahp run` active?)"
+          />
+        </div>
       </div>
       {session.taskTitle && (
         <p className="text-text-dim truncate" title={session.taskTitle}>
@@ -298,7 +369,11 @@ export default async function Page(): Promise<React.ReactElement> {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {result.projects.map((p) => (
-              <ProjectCard key={p.path} project={p} />
+              <ProjectCard
+                key={p.path}
+                project={p}
+                controlPortAvailable={result.controlPort !== null}
+              />
             ))}
           </div>
         )}
@@ -354,6 +429,24 @@ export default async function Page(): Promise<React.ReactElement> {
                 <span>
                   success: <span className="text-text-dim">{result.totals.successRate}%</span>
                 </span>
+                {result.totals.abortedRuns > 0 && (
+                  <span>
+                    aborted:{' '}
+                    <span className="text-status-blocked">{result.totals.abortedRuns}</span>
+                  </span>
+                )}
+                {tokensRecorded(result.totals.tokens) && (
+                  <span>
+                    tokens:{' '}
+                    <span className="text-text-dim">
+                      {formatTokens(result.totals.tokens.inputTokens)} in /{' '}
+                      {formatTokens(result.totals.tokens.outputTokens)} out
+                    </span>{' '}
+                    <span className="text-text-faint">
+                      ({result.totals.tokens.cacheHitRate}% cache)
+                    </span>
+                  </span>
+                )}
                 <span className="text-text-faint/70 font-mono">{result.metricsFile}</span>
               </>
             ) : result.metricsError ? (
@@ -382,6 +475,14 @@ export default async function Page(): Promise<React.ReactElement> {
                 sessions: no <span className="font-mono">{result.sessionsFile}</span> yet
               </span>
             )}
+            <span>
+              control:{' '}
+              {result.controlPort ? (
+                <span className="text-status-done font-mono">:{result.controlPort}</span>
+              ) : (
+                <span className="text-text-faint">not available</span>
+              )}
+            </span>
           </div>
         </footer>
       </main>

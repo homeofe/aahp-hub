@@ -5,6 +5,101 @@
 
 ---
 
+## 2026-04-30: T-004 abort + T-005 token tracking (claude-opus-4-7)
+
+### Context
+
+`aahp-runner` v0.4.0 shipped two prerequisites at once: PR #29 added token
+totals to `RunMetric`, PR #30 added a localhost HTTP control endpoint for
+abort. Both were merged on the same day. This session wires both into the
+hub.
+
+### T-005 token tracking
+
+`RunMetric` extended with `inputTokens`, `outputTokens`, `cacheReadTokens`,
+`cacheCreationTokens`, `modelId`, `aborted`. SDK and Copilot backends
+populate them; CLI backends leave them undefined.
+
+#### Decisions
+
+- **TokenStats type with `recordedRuns` counter.** Lets the UI distinguish
+  "no runs recorded tokens" from "runs recorded zero tokens" - the hub
+  should hide the row when nothing recorded data, not show zeros.
+- **Cache hit rate = `cacheReadTokens / (cacheReadTokens + inputTokens)`.**
+  Matches Anthropic's prompt cache pricing semantics: cache reads are billed
+  at 10% but they replace what would otherwise be fresh input tokens. The
+  ratio answers "what fraction of would-be input came from cache".
+- **Format tokens with k/M suffixes.** Raw seven-digit numbers do not fit
+  in the card column. `1.5k` for under 10k, `15k` above, `1.5M` for millions.
+- **Window tokens to 24h on the card.** Card shows the lifetime total but
+  also exposes a 24h window via `tokens24h` for follow-up UI work; today
+  only the lifetime total is rendered, leaving room for a sparkline later.
+
+### T-004 abort
+
+#### Decisions
+
+- **Hub never talks to the runner directly from the browser.** The
+  AbortButton calls `/api/abort` on the hub, which proxies to
+  `127.0.0.1:<controlPort>/abort`. This keeps the runner endpoint bound
+  to localhost (where it should stay) while the hub can be reverse-proxied
+  on a trusted network.
+- **`controlPort` discovery via sessions.json.** The runner publishes the
+  port into the same file the hub already reads. Zero new wiring; the
+  hub just adds a `controlPort` field to `SessionsResult`.
+- **Validate the port range.** The hub rejects `controlPort` values outside
+  `(0, 65536)` and rejects non-integer values. A malformed sessions.json
+  cannot redirect aborts to a wrong port.
+- **Disable button when controlPort absent.** Tooltip explains: "is `aahp
+  run` active?". This is the common case when the runner has finished.
+- **Confirm before abort.** `window.confirm(...)` is enough friction.
+  Anyone watching the dashboard probably wants the button to be hard to
+  hit by accident.
+- **Three-state UI: idle / pending / aborted / error → retry.** Errors
+  surface the message in a tooltip. The state is per-button, not global.
+- **Abort proxy timeout 8 seconds.** Long enough that a busy runner that
+  takes a moment to SIGTERM still gets through; short enough that a dead
+  runner does not hang the hub.
+
+#### Implementation notes
+
+- The runner's `aborted` flag (boolean) is plumbed through to a separate
+  count on each card and in the footer. Aborts are not failures.
+- Empty-totals helper extracted in `lib/metrics.ts` to avoid drift between
+  the success path and the two error paths.
+
+### Cross-platform note
+
+User flagged that the prior `.env.example` only showed a macOS path. The
+code itself was always cross-platform (`homedir()` + `path.join`), but the
+example was misleading. New `.env.example` shows three concrete examples
+plus the forward-slash-on-Windows variant. New `.env.local` written for
+this machine's actual Windows paths; gitignored as expected.
+
+### Verification
+
+- `npm test` 39/39 pass
+- `npm run build` clean
+- `npm run lint` clean
+- Manual: wrote a fake controlPort + session into `~/.aahp/sessions.json`,
+  confirmed the proxy route reads it correctly. Did not run the full
+  end-to-end against the live runner (the runner is not currently
+  executing here); trust types + tests.
+
+### Open questions
+
+- Whether to add a "running totals" view that aggregates the live agent's
+  in-flight token usage. Today the runner only writes tokens to JSONL on
+  completion, so the live view is silent on cost. A `/api/sessions` route
+  that polls the agent's log file and parses the `[TOKENS in:X out:Y]`
+  trailer the runner writes would be the cheapest fix.
+- Whether to deduplicate "controlPort gone" UI between idle and stale
+  cases. Right now the button just shows "abort (disabled)" with a
+  tooltip; the footer shows "control: not available". Two signals saying
+  the same thing might be one too many.
+
+---
+
 ## 2026-04-30: T-001 tests for lib modules (claude-opus-4-7)
 
 ### Context
