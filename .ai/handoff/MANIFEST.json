@@ -1,0 +1,69 @@
+{
+  "aahp_version": "3.0",
+  "project": "aahp-hub",
+  "github_repo": "homeofe/aahp-hub",
+  "last_session": {
+    "agent": "claude-opus-4-7",
+    "session_id": "scaffold-2026-04-30",
+    "timestamp": "2026-04-30T00:00:00.000Z",
+    "commit": "initial",
+    "phase": "done",
+    "duration_minutes": 30
+  },
+  "files": {
+    "STATUS.md": {
+      "checksum": "sha256:75b0b52fcda2ca58d97e9da90211b0a287949f91f9aa538e9d2fa7334e27744c",
+      "updated": "2026-04-30T00:00:00Z",
+      "lines": 92,
+      "summary": "v0.1.0 scaffold: Next.js 15 + Tailwind v4 dashboard, scanner reads MANIFEST.json under ROOT_DIR, build passing."
+    },
+    "NEXT_ACTIONS.md": {
+      "checksum": "sha256:5fc42b771e3a168330a793c7da3ebe3ffd0f4ed0bf311c2c0ff93f5f24944b76",
+      "updated": "2026-04-30T00:00:00Z",
+      "lines": 52,
+      "summary": "T-001 tests, T-002 token aggregation, T-003 detail page."
+    },
+    "LOG.md": {
+      "checksum": "sha256:2050897f88015e4d7ebc83798628d92b028ff157ee40689d8a70eb77a41f734a",
+      "updated": "2026-04-30T00:00:00Z",
+      "lines": 57,
+      "summary": "Initial scaffold ADR: Next.js 15, no auth, no DB, polling, Atlas dark theme."
+    },
+    "CONVENTIONS.md": {
+      "checksum": "sha256:79428f478d123e71607b999e0d8283ad972c4b06486dea5a8cd4cba809d3c803",
+      "updated": "2026-04-30T00:00:00Z",
+      "lines": 104,
+      "summary": "Stack rules: Next.js 15 RSC, Tailwind v4 CSS-first, npm only, no em dashes, hub stays read-only."
+    }
+  },
+  "quick_context": "aahp-hub v0.1.0 - web dashboard for the AAHP runner. Next.js 15 App Router, Tailwind v4, dark theme. Server-side scanner reads .ai/handoff/MANIFEST.json under ROOT_DIR (default ~/Workspace) and renders one card per project with phase, task counts, last agent, and GitHub link. 30s auto-refresh. Read-only, no auth, no DB. Initial scaffold complete; tests are T-001.",
+  "token_budget": {
+    "manifest_only": 80,
+    "manifest_plus_core": 1100,
+    "full_read": 4000
+  },
+  "next_task_id": 4,
+  "tasks": {
+    "T-001": {
+      "title": "Add unit tests for scanProjects",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-04-30T00:00:00Z"
+    },
+    "T-002": {
+      "title": "Aggregate token usage from aahp-runner metrics",
+      "status": "ready",
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-04-30T00:00:00Z"
+    },
+    "T-003": {
+      "title": "Per-project detail page",
+      "status": "ready",
+      "priority": "low",
+      "depends_on": [],
+      "created": "2026-04-30T00:00:00Z"
+    }
+  }
+}

@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AAHP Hub
 
-## Getting Started
+Web dashboard for the AAHP runner. Scans your workspace for projects with
+`.ai/handoff/MANIFEST.json` and shows live agent status, active tasks, and
+recent activity in one place.
 
-First, run the development server:
+## The AAHP Toolchain (use all five together)
+
+| Repo | What it does | When to use it |
+|------|--------------|----------------|
+| [homeofe/AAHP](https://github.com/homeofe/AAHP) | The protocol specification. Defines the v3 handoff file format (`MANIFEST.json`, `STATUS.md`, `LOG.md`, etc.), the token-efficient compression scheme, and the safety rules every agent must follow. Spec only, no code. | Read this first to understand how agents share state across sessions. |
+| [homeofe/aahp-runner](https://github.com/homeofe/aahp-runner) | Autonomous CLI. Scans a root directory for projects with `MANIFEST.json`, syncs GitHub Issues into tasks, and spawns Claude, Gemini, or Codex to implement them, run tests, and commit. Headless and unattended. | Run it nightly to let agents work through your backlog while you sleep. |
+| [homeofe/aahp-orchestrator](https://github.com/homeofe/aahp-orchestrator) | VS Code extension. Injects AAHP context automatically into GitHub Copilot and Claude Code while you code. Provides a status bar entry, an `@aahp` chat command, and a sidebar dashboard. | Install it in your editor so live coding sessions stay in sync with the handoff state. |
+| [homeofe/aahp-cron](https://github.com/homeofe/aahp-cron) | Scheduling wrapper for `aahp-runner`. Manages cron jobs on Linux and macOS and Task Scheduler entries on Windows. | Use it to schedule the runner to fire nightly or at intervals without writing your own cron syntax. |
+| [homeofe/aahp-hub](https://github.com/homeofe/aahp-hub) | Web dashboard (this repo). Renders the manifests `aahp-runner` produces into a single live overview. | Open it in a browser when you want to see what the headless runner has been doing without grepping log files. |
+
+The runner is headless. When agents work overnight, there is no visible
+overview. Tokens get spent, tasks fail, and nobody sees it. The hub closes
+that gap.
+
+## What the dashboard shows
+
+For each project found under `ROOT_DIR`:
+
+- Project name and phase (`research`, `architect`, `implement`, `review`, `done`)
+- Active task counts (in progress, ready, done)
+- Up to three active task titles with their IDs
+- The last agent that touched the project and its `quick_context` summary
+- A relative timestamp ("3m ago") of the last session
+- A link to the project's GitHub repo when the manifest carries one
+
+The page polls itself every 30 seconds via `router.refresh()` so values stay
+current. There is no auth, no database, and no WebSocket. State lives in the
+`MANIFEST.json` files on disk.
+
+## Getting started
 
 ```bash
+git clone https://github.com/homeofe/aahp-hub.git
+cd aahp-hub
+npm install
+cp .env.example .env.local
+# edit .env.local and point ROOT_DIR at the directory aahp-runner scans
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROOT_DIR` | `~/Workspace` | Directory the hub scans for `.ai/handoff/MANIFEST.json` files. Should match the root directory configured in `aahp-runner`. |
 
-## Learn More
+The scanner walks two levels deep, skips dotfiles and `node_modules`, and
+expects each project to have a `.ai/handoff/MANIFEST.json` at its root. If a
+manifest fails to parse, the project is rendered as a parse error card rather
+than crashing the page.
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js 15 App Router
+- TypeScript strict mode
+- Tailwind CSS v4
+- Server Components for the scan, a small client component for polling
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Production
 
-## Deploy on Vercel
+```bash
+npm run build
+npm run start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The hub is a thin renderer. It does not write to the manifests it reads. Run
+it as an internal tool behind your own network. There is no built-in auth.
