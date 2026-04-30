@@ -295,9 +295,7 @@ export async function scanProjects(): Promise<ScanResult> {
     const aActive = a.activeSessions.length > 0 ? 0 : 1;
     const bActive = b.activeSessions.length > 0 ? 0 : 1;
     if (aActive !== bActive) return aActive - bActive;
-    const aTime = a.lastUpdated || '';
-    const bTime = b.lastUpdated || '';
-    return bTime.localeCompare(aTime);
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   });
 
   const projectNames = new Set(projects.map((p) => p.name));

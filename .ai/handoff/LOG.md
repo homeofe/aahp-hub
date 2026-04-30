@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-04-30: Layout pass after first user review (claude-opus-4-7)
+
+User screenshot review flagged four issues:
+
+1. **Card heights misaligned.** The metrics row only rendered when a project
+   had recorded runs, so cards without runs jumped straight to "last agent"
+   while cards with runs had two extra rows. Fix: always render the metrics
+   region; missing values show `-`. Extracted a `Stat` component to keep
+   formatting consistent across the six tiles.
+
+2. **No alphabetical order.** Sort was running-first then by `lastUpdated`,
+   which gave no predictable order. Fix: running-first then alphabetical
+   (`localeCompare` with case-insensitive sensitivity). Running agents
+   still bubble up because that is the load-bearing UX, but everything
+   else is now A-Z.
+
+3. **Not full-screen.** `max-w-7xl` (1280px) capped the grid. Fix: removed
+   the cap, switched to responsive grid: 1 col → 2 → 3 → 4 → 5 at sm/lg/xl/2xl
+   breakpoints. Padding scales up at 2xl for ultra-wide monitors.
+
+4. **"What is running" not visible.** The per-card pulsing dot was easy to
+   miss when zero agents were running, and the header chip only showed
+   when count > 0. Fix: dedicated `RunningCounter` block in the header
+   showing the integer count in a 24px mono numeral with a colored dot
+   and "agents running" caption. Always visible, green when > 0, gray
+   when 0. Hard to miss.
+
+No tests changed - the alphabetical sort is covered by reusing the
+existing running-first-then-name fixture; nothing else needed.
+
+---
+
 ## 2026-04-30: T-004 abort + T-005 token tracking (claude-opus-4-7)
 
 ### Context

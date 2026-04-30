@@ -24,10 +24,10 @@
       "summary": "All 5 formal tasks done. Future work: filtering, sorting, detail page, GH PRs, log tail, $ pricing, multi-host."
     },
     "LOG.md": {
-      "checksum": "sha256:7c98d5d94969f33cc3998878e59c005ed9fb6ba9402cca50fca051e4e7b46e08",
-      "updated": "2026-04-30T16:15:00Z",
-      "lines": 370,
-      "summary": "T-004 + T-005 ADR: hub never talks to runner direct from browser, /api/abort proxies to localhost; tokens/cache rate computed from RunMetric extras."
+      "checksum": "sha256:f5f3f2faa7993048a350ba9ac291de395039dee7d032a252fe4af1cc1ce85aa7",
+      "updated": "2026-04-30T16:25:00Z",
+      "lines": 402,
+      "summary": "T-004 + T-005 ADR plus layout pass: full-width grid 1->5 cols, A-Z sort, always-render metrics, prominent RunningCounter header."
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",

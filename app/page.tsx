@@ -38,6 +38,35 @@ function phaseColor(phase: string): string {
   }
 }
 
+type StatTone = 'good' | 'warn' | 'bad' | 'neutral';
+
+function Stat({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string | null;
+  tone?: StatTone;
+}): React.ReactElement {
+  const toneClass =
+    value === null
+      ? 'text-text-faint'
+      : tone === 'good'
+        ? 'text-status-done'
+        : tone === 'warn'
+          ? 'text-status-progress'
+          : tone === 'bad'
+            ? 'text-status-blocked'
+            : 'text-text';
+  return (
+    <div>
+      <div className="text-text-faint">{label}</div>
+      <div className={`font-mono ${toneClass}`}>{value ?? '-'}</div>
+    </div>
+  );
+}
+
 function tokensRecorded(stats: TokenStats): boolean {
   return (
     stats.recordedRuns > 0 &&
@@ -126,76 +155,67 @@ function ProjectCard({
         </ul>
       )}
 
-      {project.metrics && project.metrics.totalRuns > 0 && (
-        <div className="space-y-2 border-t border-border pt-3">
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div>
-              <div className="text-text-faint">24h / 7d</div>
-              <div className="font-mono text-text">
-                {project.metrics.runs24h}
-                <span className="text-text-faint"> / </span>
-                {project.metrics.runs7d}
-              </div>
-            </div>
-            <div>
-              <div className="text-text-faint">success</div>
-              <div
-                className={`font-mono ${
-                  project.metrics.successRate >= 80
-                    ? 'text-status-done'
-                    : project.metrics.successRate >= 50
-                      ? 'text-status-progress'
-                      : 'text-status-error'
-                }`}
-              >
-                {project.metrics.successRate}%
-              </div>
-            </div>
-            <div>
-              <div className="text-text-faint">avg</div>
-              <div className="font-mono text-text">
-                {formatDuration(project.metrics.avgDurationMs)}
-              </div>
-            </div>
-          </div>
-          {showTokens && (
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div>
-                <div className="text-text-faint">tokens in / out</div>
-                <div className="font-mono text-text">
-                  {formatTokens(project.metrics.tokens.inputTokens)}
-                  <span className="text-text-faint"> / </span>
-                  {formatTokens(project.metrics.tokens.outputTokens)}
-                </div>
-              </div>
-              <div>
-                <div className="text-text-faint">cache hit</div>
-                <div
-                  className={`font-mono ${
-                    project.metrics.tokens.cacheHitRate >= 60
-                      ? 'text-status-done'
-                      : project.metrics.tokens.cacheHitRate >= 30
-                        ? 'text-status-progress'
-                        : 'text-text-dim'
-                  }`}
-                >
-                  {project.metrics.tokens.cacheHitRate}%
-                </div>
-              </div>
-              <div>
-                <div className="text-text-faint">aborted</div>
-                <div
-                  className={`font-mono ${
-                    project.metrics.abortedRuns > 0 ? 'text-status-blocked' : 'text-text-dim'
-                  }`}
-                >
-                  {project.metrics.abortedRuns}
-                </div>
-              </div>
-            </div>
-          )}
+      <div className="space-y-2 border-t border-border pt-3">
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <Stat
+            label="24h / 7d"
+            value={
+              project.metrics
+                ? `${project.metrics.runs24h} / ${project.metrics.runs7d}`
+                : null
+            }
+          />
+          <Stat
+            label="success"
+            value={project.metrics ? `${project.metrics.successRate}%` : null}
+            tone={
+              project.metrics
+                ? project.metrics.successRate >= 80
+                  ? 'good'
+                  : project.metrics.successRate >= 50
+                    ? 'warn'
+                    : 'bad'
+                : 'neutral'
+            }
+          />
+          <Stat
+            label="avg"
+            value={
+              project.metrics ? formatDuration(project.metrics.avgDurationMs) : null
+            }
+          />
         </div>
-      )}
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <Stat
+            label="tokens in / out"
+            value={
+              showTokens
+                ? `${formatTokens(project.metrics!.tokens.inputTokens)} / ${formatTokens(project.metrics!.tokens.outputTokens)}`
+                : null
+            }
+          />
+          <Stat
+            label="cache hit"
+            value={showTokens ? `${project.metrics!.tokens.cacheHitRate}%` : null}
+            tone={
+              showTokens
+                ? project.metrics!.tokens.cacheHitRate >= 60
+                  ? 'good'
+                  : project.metrics!.tokens.cacheHitRate >= 30
+                    ? 'warn'
+                    : 'neutral'
+                : 'neutral'
+            }
+          />
+          <Stat
+            label="aborted"
+            value={project.metrics ? String(project.metrics.abortedRuns) : null}
+            tone={
+              project.metrics && project.metrics.abortedRuns > 0 ? 'bad' : 'neutral'
+            }
+          />
+        </div>
+      </div>
 
       <div className="text-xs text-text-dim border-t border-border pt-3 mt-auto">
         <div className="flex items-center justify-between gap-2 mb-1">
@@ -223,6 +243,40 @@ function ProjectCard({
             {project.githubRepo}
           </a>
         )}
+      </div>
+    </div>
+  );
+}
+
+function RunningCounter({ count }: { count: number }): React.ReactElement {
+  const isLive = count > 0;
+  return (
+    <div
+      className={`flex items-center gap-3 px-4 py-2 rounded-lg border ${
+        isLive
+          ? 'border-status-done/50 bg-status-done/10'
+          : 'border-border bg-bg-elevated'
+      }`}
+    >
+      <span
+        className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+          isLive
+            ? 'bg-status-done shadow-[0_0_10px_rgba(74,222,128,0.7)] animate-pulse'
+            : 'bg-text-faint'
+        }`}
+        aria-hidden
+      />
+      <div className="leading-tight">
+        <div
+          className={`font-mono text-2xl font-semibold ${
+            isLive ? 'text-status-done' : 'text-text-dim'
+          }`}
+        >
+          {count}
+        </div>
+        <div className="text-[10px] uppercase tracking-wider text-text-faint">
+          {count === 1 ? 'agent running' : 'agents running'}
+        </div>
       </div>
     </div>
   );
@@ -324,9 +378,9 @@ export default async function Page(): Promise<React.ReactElement> {
   return (
     <>
       <AutoRefresh />
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
-        <header className="flex items-start justify-between gap-4 mb-8 pb-6 border-b border-border">
-          <div>
+      <main className="flex-1 w-full mx-auto px-6 py-6 2xl:px-10">
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-5 border-b border-border">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-text">
               AAHP <span className="text-accent">Hub</span>
             </h1>
@@ -334,7 +388,7 @@ export default async function Page(): Promise<React.ReactElement> {
               <LiveIndicator />
               <span className="text-text-faint">|</span>
               <span>
-                Last updated: <RelativeTime iso={result.scannedAt} />
+                updated <RelativeTime iso={result.scannedAt} />
               </span>
               {result.rootDir && (
                 <>
@@ -346,18 +400,12 @@ export default async function Page(): Promise<React.ReactElement> {
                   </span>
                 </>
               )}
-              {result.activeSessions.length > 0 && (
-                <>
-                  <span className="text-text-faint">|</span>
-                  <span className="text-status-done">
-                    {result.activeSessions.length} agent
-                    {result.activeSessions.length === 1 ? '' : 's'} running
-                  </span>
-                </>
-              )}
             </p>
           </div>
-          <RefreshButton />
+          <div className="flex items-center gap-3">
+            <RunningCounter count={result.activeSessions.length} />
+            <RefreshButton />
+          </div>
         </header>
 
         {result.orphanSessions.length > 0 && (
@@ -367,7 +415,7 @@ export default async function Page(): Promise<React.ReactElement> {
         {result.projects.length === 0 ? (
           <EmptyState rootDir={result.rootDir} hasErrors={result.errors.length > 0} />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {result.projects.map((p) => (
               <ProjectCard
                 key={p.path}
