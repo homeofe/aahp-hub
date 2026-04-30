@@ -3,6 +3,7 @@ import { formatDuration, formatTokens, type TokenStats } from '@/lib/metrics';
 import type { ActiveSession } from '@/lib/sessions';
 import { AbortButton } from './abort-button';
 import { AutoRefresh, LiveIndicator, RefreshButton } from './auto-refresh';
+import { RunButton } from './run-button';
 import { RelativeTime } from './timestamp';
 
 export const dynamic = 'force-dynamic';
@@ -77,12 +78,22 @@ function tokensRecorded(stats: TokenStats): boolean {
 function ProjectCard({
   project,
   controlPortAvailable,
+  runnerAvailable,
 }: {
   project: ProjectSummary;
   controlPortAvailable: boolean;
+  runnerAvailable: boolean;
 }): React.ReactElement {
   const isRunning = project.activeSessions.length > 0;
   const showTokens = project.metrics ? tokensRecorded(project.metrics.tokens) : false;
+  const startDisabled = !runnerAvailable || isRunning || project.readyTasks + project.inProgressTasks === 0;
+  const startReason = !runnerAvailable
+    ? 'aahp binary not on PATH'
+    : isRunning
+      ? 'an agent is already running on this project'
+      : project.readyTasks + project.inProgressTasks === 0
+        ? 'no ready or in-progress tasks'
+        : undefined;
   return (
     <div
       className={`rounded-lg border ${
@@ -104,11 +115,20 @@ function ProjectCard({
             {project.path}
           </p>
         </div>
-        <span
-          className={`px-2 py-0.5 text-xs rounded border whitespace-nowrap ${phaseColor(project.phase)}`}
-        >
-          {project.phase}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            className={`px-2 py-0.5 text-xs rounded border whitespace-nowrap ${phaseColor(project.phase)}`}
+          >
+            {project.phase}
+          </span>
+          <RunButton
+            project={project.name}
+            label="start"
+            disabled={startDisabled}
+            disabledReason={startReason}
+            confirmMessage={`Start aahp run on ${project.name}?`}
+          />
+        </div>
       </div>
 
       {isRunning && (
@@ -245,6 +265,105 @@ function ProjectCard({
         )}
       </div>
     </div>
+  );
+}
+
+function ControlCenter({
+  runner,
+  controlPort,
+  runningCount,
+  totalReady,
+}: {
+  runner: import('@/lib/manifest').ScanResult['runner'];
+  controlPort: number | null;
+  runningCount: number;
+  totalReady: number;
+}): React.ReactElement {
+  const runnerLabel = runner.available
+    ? `aahp ${runner.version ?? 'unknown'}`
+    : 'aahp not found';
+  const controlLabel = controlPort
+    ? `control port :${controlPort}`
+    : 'control port idle';
+  const noReady = totalReady === 0;
+  const allDisabled = !runner.available || runningCount > 0 || noReady;
+  const allReason = !runner.available
+    ? 'aahp binary not on PATH (npm install -g @elvatis_com/aahp-runner)'
+    : runningCount > 0
+      ? `${runningCount} agent${runningCount === 1 ? '' : 's'} already running`
+      : noReady
+        ? 'no ready tasks across the workspace'
+        : undefined;
+
+  return (
+    <section className="mb-6 rounded-lg border border-border bg-bg-card p-4 flex flex-wrap items-center gap-4">
+      <div className="flex items-center gap-3">
+        <span
+          className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+            runner.available
+              ? runningCount > 0
+                ? 'bg-status-done shadow-[0_0_8px_rgba(74,222,128,0.6)] animate-pulse'
+                : 'bg-status-done/70'
+              : 'bg-status-error'
+          }`}
+          aria-hidden
+        />
+        <div className="leading-tight">
+          <div className="text-sm font-semibold text-text">{runnerLabel}</div>
+          <div className="text-[11px] text-text-faint font-mono">{controlLabel}</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        <span>
+          <span className="text-text-faint">running </span>
+          <span className={runningCount > 0 ? 'text-status-done font-mono' : 'text-text-dim font-mono'}>
+            {runningCount}
+          </span>
+        </span>
+        <span>
+          <span className="text-text-faint">ready </span>
+          <span className={totalReady > 0 ? 'text-status-ready font-mono' : 'text-text-dim font-mono'}>
+            {totalReady}
+          </span>
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-2 ml-auto">
+        <RunButton
+          all
+          label="run all ready"
+          variant="primary"
+          disabled={allDisabled}
+          disabledReason={allReason}
+          confirmMessage={`Start aahp run --all? This kicks off agents on every project with ready tasks (${totalReady}).`}
+        />
+        <RunButton
+          all
+          dryRun
+          label="dry run"
+          disabled={!runner.available}
+          disabledReason={runner.available ? undefined : 'aahp binary not on PATH'}
+        />
+      </div>
+
+      {!runner.available && (
+        <p className="basis-full text-xs text-text-faint mt-1">
+          install with{' '}
+          <code className="font-mono text-text-dim">
+            npm install -g @elvatis_com/aahp-runner
+          </code>
+          {runner.error && (
+            <span
+              className="font-mono ml-2 text-text-faint/70"
+              title={runner.error}
+            >
+              (details on hover)
+            </span>
+          )}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -408,6 +527,13 @@ export default async function Page(): Promise<React.ReactElement> {
           </div>
         </header>
 
+        <ControlCenter
+          runner={result.runner}
+          controlPort={result.controlPort}
+          runningCount={result.activeSessions.length}
+          totalReady={result.projects.reduce((s, p) => s + p.readyTasks, 0)}
+        />
+
         {result.orphanSessions.length > 0 && (
           <OrphanSessionsBanner sessions={result.orphanSessions} />
         )}
@@ -415,12 +541,13 @@ export default async function Page(): Promise<React.ReactElement> {
         {result.projects.length === 0 ? (
           <EmptyState rootDir={result.rootDir} hasErrors={result.errors.length > 0} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {result.projects.map((p) => (
               <ProjectCard
                 key={p.path}
                 project={p}
                 controlPortAvailable={result.controlPort !== null}
+                runnerAvailable={result.runner.available}
               />
             ))}
           </div>
@@ -449,6 +576,12 @@ export default async function Page(): Promise<React.ReactElement> {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span>{result.projects.length} projects</span>
+              {result.stubs.length > 0 && (
+                <span title={result.stubs.map((s) => s.path).join('\n')}>
+                  {result.stubs.length} stub
+                  {result.stubs.length === 1 ? '' : 's'} hidden
+                </span>
+              )}
               <span>{totalInProgress} in progress</span>
               <span>{totalReady} ready</span>
               <span>{totalDone} done</span>

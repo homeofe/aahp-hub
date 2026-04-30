@@ -24,10 +24,10 @@
       "summary": "All 5 formal tasks done. Future work: filtering, sorting, detail page, GH PRs, log tail, $ pricing, multi-host."
     },
     "LOG.md": {
-      "checksum": "sha256:f5f3f2faa7993048a350ba9ac291de395039dee7d032a252fe4af1cc1ce85aa7",
-      "updated": "2026-04-30T16:25:00Z",
-      "lines": 402,
-      "summary": "T-004 + T-005 ADR plus layout pass: full-width grid 1->5 cols, A-Z sort, always-render metrics, prominent RunningCounter header."
+      "checksum": "sha256:866f4f87a0765e7f8ba60fa13386faa393aaedd1abdd21459bd95a3250b23555",
+      "updated": "2026-04-30T16:35:00Z",
+      "lines": 497,
+      "summary": "T-004/T-005 + layout + Control Center: stub filter, /api/run, 3-col grid, Windows aahp detection via cmd.exe."
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",

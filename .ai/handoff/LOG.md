@@ -5,6 +5,101 @@
 
 ---
 
+## 2026-04-30: Control Center + cleanup (claude-opus-4-7)
+
+User feedback after seeing the live dashboard: "looks really dirty :D".
+Two real issues:
+
+1. **Stub manifests spamming the grid.** `aahp init` creates a manifest
+   template with `project: "[PROJECT]"`, a placeholder task ("Example: Add
+   tests for feature X"), and `[2-3 sentences: ...]` quick context. Several
+   projects in the workspace had been bootstrapped this way and never
+   filled in, so the dashboard showed a row of identical `[PROJECT]` cards.
+2. **`aahp` not found on Windows.** The runner detection was hitting
+   `spawnSync EINVAL` for `aahp.cmd` (Node 18+ refuses to exec `.cmd`/`.bat`
+   without going through cmd.exe).
+
+Plus the user asked for a control center to actually start runs from the
+hub, and to cap the grid at 3 columns for readability.
+
+### Decisions
+
+- **Stub detection.** Heuristic: `name === "[PROJECT]"` (literal square
+  brackets, the template default) OR `name === "project"` with a single
+  `Example:`-prefixed task. Stubs are excluded from the grid and counted
+  in the footer ("N stubs hidden") with the project paths in a tooltip.
+  Considered hiding them silently; rejected because the user should see
+  there is something to clean up.
+- **Spawning `aahp` on Windows.** Switched from `shell: true` (deprecated
+  DEP0190 and concatenates args without escaping) to explicit
+  `cmd.exe /d /s /c <binary> <args...>`. spawn runs with `shell: false`
+  and Node passes the args verbatim to cmd.exe, which finds `aahp.cmd`
+  via PATH. All args still pass through strict validation regexes
+  upstream so cmd.exe metacharacter risk is contained.
+- **PATH resolution before spawn.** `resolveBinaryFromPath()` walks
+  `process.env.PATH`, tests each directory for `aahp.cmd` / `aahp.bat` /
+  `aahp.exe` / `aahp` (Windows order), and returns an absolute path.
+  Fallback: try the bare names through cmd.exe. Two strategies catch
+  most installations.
+- **`/api/run` route.** Hub-side Next.js route handler validates input
+  against project / backend / model / timeout regexes, then `spawnRun`s
+  `aahp run` detached with `stdio: 'ignore'` and `proc.unref()`. The
+  hub does not block on the run; the user sees progress via SSE as the
+  runner publishes into `sessions.json` and `metrics.jsonl`.
+- **3-column grid cap.** Was 1->2->3->4->5; capped at 3 (`md:grid-cols-2
+  xl:grid-cols-3`) so card text stays readable.
+- **Control Center panel.** New top-of-page block: runner status pill
+  (binary version + control port), running/ready counts, "run all ready"
+  primary button, "dry run" secondary button. Per-card "start" button
+  spawns `aahp run <project>` for that project only. All buttons
+  disabled with hover-explained reasons (binary missing, agent already
+  running, no ready tasks, etc.).
+- **Validation extracted.** `validateRunArgs` is a pure function exposed
+  separately from `spawnRun` so tests cover input validation without
+  touching the filesystem.
+
+### Implementation
+
+- `lib/runner.ts` (new): detection + validated spawn. Three input
+  patterns: project name `[a-zA-Z0-9._-]{1,64}`, backend allowlist,
+  model name `[a-zA-Z0-9._-]{1,80}` (no slashes - prevents path
+  traversal). Timeout integer 1-240.
+- `app/api/run/route.ts` (new): POST { project | all, backend?, model?,
+  timeoutMinutes?, dryRun? }. 400 on bad input, 503 on missing runner,
+  202 on success.
+- `app/run-button.tsx` (new): client component with idle / pending /
+  started / error states, optional confirm dialog, retry on error.
+- `app/page.tsx`: Control Center, per-card start button, 3-col grid,
+  stub-count footer line.
+- `lib/manifest.ts`: stub detection in `summarize`; stubs collected
+  separately; sort still running-first then alphabetical.
+
+### Verification
+
+- `npm test`: 51/51 (added 11 runner tests)
+- `npm run build` clean
+- `npm run lint` clean
+- Verified `cmd.exe /d /s /c aahp --version` returns `0.4.0` from a
+  one-off node script, confirming the new spawn path works.
+- User dev server needs a restart to pick up the runner change.
+
+### Open follow-ups
+
+- The detection still depends on `process.env.PATH` containing the npm
+  global bin. If the user starts the hub from a context where PATH is
+  stripped (e.g. some service managers), detection will fail even
+  though `aahp` is on the user's interactive PATH. Document this if it
+  comes up.
+- No streaming feedback for the start button. The button transitions
+  to "started" and triggers `router.refresh()`, but the user has to
+  watch the cards or tail logs to see the actual run progress. SSE
+  already handles real-time updates, so this is mostly cosmetic.
+- `aahp init` manifests should probably be hidden by default forever,
+  but the user might want a "show stubs" toggle eventually. Not yet
+  worth a UI control.
+
+---
+
 ## 2026-04-30: Layout pass after first user review (claude-opus-4-7)
 
 User screenshot review flagged four issues:

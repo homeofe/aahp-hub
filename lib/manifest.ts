@@ -3,6 +3,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { loadMetrics, type MetricsResult, type ProjectMetrics } from './metrics';
+import { detectRunner, type RunnerStatus } from './runner';
 import { loadSessions, type ActiveSession } from './sessions';
 
 export type TaskStatus = 'ready' | 'in_progress' | 'done' | 'blocked' | string;
@@ -52,8 +53,14 @@ export interface ProjectSummary {
   activeSessions: ActiveSession[];
 }
 
+export interface StubProject {
+  name: string;
+  path: string;
+}
+
 export interface ScanResult {
   projects: ProjectSummary[];
+  stubs: StubProject[];
   errors: { path: string; message: string }[];
   rootDir: string | null;
   scannedAt: string;
@@ -67,6 +74,7 @@ export interface ScanResult {
   sessionsError: string | null;
   orphanSessions: ActiveSession[];
   controlPort: number | null;
+  runner: RunnerStatus;
 }
 
 const MANIFEST_REL_PATH = ['.ai', 'handoff', 'MANIFEST.json'];
@@ -230,6 +238,7 @@ export async function scanProjects(): Promise<ScanResult> {
   const scannedAt = new Date().toISOString();
 
   const [metrics, sessionsRes] = await Promise.all([loadMetrics(), loadSessions()]);
+  const runner = detectRunner();
 
   const sessionsByProject = new Map<string, ActiveSession[]>();
   for (const s of sessionsRes.sessions) {
@@ -248,6 +257,7 @@ export async function scanProjects(): Promise<ScanResult> {
     sessionsAvailable: sessionsRes.available,
     sessionsError: sessionsRes.error,
     controlPort: sessionsRes.controlPort,
+    runner,
   };
 
   if (!rootDir) {
@@ -257,6 +267,7 @@ export async function scanProjects(): Promise<ScanResult> {
       rootDir: null,
       scannedAt,
       orphanSessions: sessionsRes.sessions,
+      stubs: [],
       ...metricsMeta,
     };
   }
@@ -273,16 +284,23 @@ export async function scanProjects(): Promise<ScanResult> {
       rootDir,
       scannedAt,
       orphanSessions: sessionsRes.sessions,
+      stubs: [],
       ...metricsMeta,
     };
   }
 
   const projects: ProjectSummary[] = [];
+  const stubs: StubProject[] = [];
   for (const manifestPath of manifestPaths) {
     try {
       const raw = await readFile(manifestPath, 'utf8');
       const manifest = parseManifest(raw);
-      projects.push(summarize(manifestPath, manifest, metrics.byProject, sessionsByProject));
+      const summary = summarize(manifestPath, manifest, metrics.byProject, sessionsByProject);
+      if (isStubProject(summary)) {
+        stubs.push({ name: summary.name, path: summary.path });
+      } else {
+        projects.push(summary);
+      }
     } catch (err) {
       errors.push({
         path: manifestPath,
@@ -298,17 +316,36 @@ export async function scanProjects(): Promise<ScanResult> {
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   });
 
+  stubs.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
   const projectNames = new Set(projects.map((p) => p.name));
   const orphanSessions = sessionsRes.sessions.filter((s) => !projectNames.has(s.repoName));
 
   return {
     projects,
+    stubs,
     errors,
     rootDir,
     scannedAt,
     orphanSessions,
     ...metricsMeta,
   };
+}
+
+const STUB_NAME_PATTERN = /^\[.*\]$/;
+const STUB_TASK_TITLE_PATTERN = /^example: /i;
+
+function isStubProject(p: ProjectSummary): boolean {
+  if (STUB_NAME_PATTERN.test(p.name)) return true;
+  if (p.name.toLowerCase() === 'project' && p.totalTasks <= 1) {
+    if (
+      p.activeTasks.length > 0 &&
+      STUB_TASK_TITLE_PATTERN.test(p.activeTasks[0]!.title)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function rootDirIsConfigured(): boolean {
