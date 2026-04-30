@@ -7,18 +7,6 @@
 
 ## Active Tasks
 
-### T-001: Add unit tests for scanProjects, loadMetrics, loadSessions
-- **Priority:** medium
-- **Status:** ready
-- **Why:** Three non-trivial parsers (manifest scanner with messy-shape coercion,
-  metrics aggregator, sessions reader) and zero tests. Especially worth covering:
-  the `normaliseTasks` array vs object branch, and `coerceString` for object
-  `quick_context` fields seen in the wild (`elvatis-defense`).
-- **Done when:** Vitest suite covers root resolution, two-level walk, valid
-  manifest, malformed JSON, schema-variant manifest (array tasks, object
-  quick_context), missing ROOT_DIR, missing metrics/sessions files, malformed
-  JSONL lines.
-
 ### T-004: Abort function for running agents
 - **Priority:** medium
 - **Status:** ready
@@ -54,6 +42,7 @@
 | Detail page | `/projects/[name]` with full STATUS.md and recent LOG entries | Card truncates to 3 active tasks |
 | GitHub integration | Show open PRs from each project's repo | Closes the loop with `aahp-runner` PR creation |
 | Per-session log tail | Stream the running agent's full log, not just the last line | Higher fidelity than a single line; needs a log-tailing route handler |
+| API endpoint | `/api/sessions` JSON for non-browser clients | Defer until requested |
 
 ---
 
@@ -61,6 +50,7 @@
 
 | ID | Task | Resolution |
 |----|------|-----------|
+| T-001 | Tests for scanProjects, loadMetrics, loadSessions | Vitest added, 27 tests across 3 suites covering schema-variant manifests, JSONL malformed lines, log line lookup, missing files. `server-only` aliased to a stub. |
 | T-003 | Live status of running agents | SSE route at `/api/stream` watches `sessions.json` and `metrics.jsonl` mtime; client subscribes and triggers `router.refresh()` on change. Cards get a pulsing dot and a session row when an agent is running. Live / offline indicator in header. |
 | T-002 | Aggregate runner activity stats | `lib/metrics.ts` reads `~/.aahp/metrics.jsonl` and renders 24h/7d/success/avg-duration per card. |
 | - | Initial scaffold | Next.js 15, Tailwind v4, dark theme, scanner, dashboard MVP |

@@ -4,52 +4,54 @@
   "github_repo": "homeofe/aahp-hub",
   "last_session": {
     "agent": "claude-opus-4-7",
-    "session_id": "T-003-2026-04-30",
-    "timestamp": "2026-04-30T13:30:00.000Z",
-    "commit": "T-003 done",
+    "session_id": "T-001-2026-04-30",
+    "timestamp": "2026-04-30T14:00:00.000Z",
+    "commit": "T-001 done",
     "phase": "done",
-    "duration_minutes": 45
+    "duration_minutes": 30
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:92f368f7ee5818c5ad0a3d5f6890a9a931d8ba0b84dcec8f807d03449278eb9d",
-      "updated": "2026-04-30T13:30:00Z",
-      "lines": 97,
-      "summary": "v0.1.0: scaffold + T-002 metrics + T-003 SSE live status. Defensive variant-manifest parsing."
+      "checksum": "sha256:9eac81317ec9b8ec3459b7047f4f293a2d371045d7070e1330bfb9fa9b6baddc",
+      "updated": "2026-04-30T14:00:00Z",
+      "lines": 94,
+      "summary": "v0.1.0: scaffold + T-002 metrics + T-003 SSE + T-001 tests. 27/27 green."
     },
     "NEXT_ACTIONS.md": {
-      "checksum": "sha256:56bc51bcda4ca5608724ffee7296f1173cbc9649eb64a32d29dd3d89b8bd9979",
-      "updated": "2026-04-30T13:30:00Z",
-      "lines": 66,
-      "summary": "T-001 tests, T-004 abort (needs runner endpoint), T-005 token tracking (runner-side)."
+      "checksum": "sha256:2764af8c6c5faf3ff4fcf770fa21906e5d88a5d8520b220a0fa1f016be22fa39",
+      "updated": "2026-04-30T14:00:00Z",
+      "lines": 56,
+      "summary": "T-004 abort (runner endpoint), T-005 token tracking (runner-side). All hub-side work for the user TODO is done."
     },
     "LOG.md": {
-      "checksum": "sha256:e2d45c87cbb1954fe7b66e9adf8e64205d0d30db4a4f9318de325cf3b5323db7",
-      "updated": "2026-04-30T13:30:00Z",
-      "lines": 219,
-      "summary": "T-003 ADR: SSE over WS, mtime polling not fs.watch, defensive parsing fix for variant schema."
+      "checksum": "sha256:e2fb1d56192871bd09bd309421510cee8313c5dca4cded830c3b1ec10863a3ea",
+      "updated": "2026-04-30T14:00:00Z",
+      "lines": 275,
+      "summary": "T-001 ADR: vitest with real filesystem fixtures, env var overrides, server-only stub."
     },
     "CONVENTIONS.md": {
-      "checksum": "sha256:79428f478d123e71607b999e0d8283ad972c4b06486dea5a8cd4cba809d3c803",
-      "updated": "2026-04-30T00:00:00Z",
-      "lines": 104,
-      "summary": "Stack rules: Next.js 15 RSC, Tailwind v4 CSS-first, npm only, no em dashes, hub stays read-only."
+      "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",
+      "updated": "2026-04-30T14:00:00Z",
+      "lines": 112,
+      "summary": "Stack rules + test conventions: vitest + tmpdir fixtures + env overrides + server-only stub."
     }
   },
-  "quick_context": "aahp-hub v0.1.0 - web dashboard for the AAHP runner. Three tasks done. T-003 just landed: SSE endpoint at /api/stream watches ~/.aahp/sessions.json + metrics.jsonl mtime; client EventSource fires router.refresh() on change with 250ms debounce, plus a 30s polling fallback. Cards get a pulsing dot and a session row when an agent runs. Defensive coercion in lib/manifest.ts now handles non-spec manifests (array tasks, object quick_context). Open: T-001 tests, T-004 abort (runner endpoint needed), T-005 token tracking (runner-side change).",
+  "quick_context": "aahp-hub v0.1.0 - web dashboard for the AAHP runner. Four tasks done. T-001 just landed: vitest with 27 tests across lib/manifest.test.ts, lib/metrics.test.ts, lib/sessions.test.ts. Real filesystem fixtures via mkdtempSync, env var overrides, no module mocks. server-only aliased to a stub in vitest.config.ts. Open: T-004 abort and T-005 token tracking, both blocked on runner-side changes.",
   "token_budget": {
     "manifest_only": 100,
     "manifest_plus_core": 1500,
-    "full_read": 5500
+    "full_read": 6000
   },
   "next_task_id": 6,
   "tasks": {
     "T-001": {
       "title": "Add unit tests for scanProjects, loadMetrics, loadSessions",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "depends_on": [],
-      "created": "2026-04-30T00:00:00Z"
+      "created": "2026-04-30T00:00:00Z",
+      "completed": "2026-04-30T14:00:00.000Z",
+      "notes": "27 tests. Vitest 4.1, tmpdir fixtures, env overrides, server-only aliased."
     },
     "T-002": {
       "title": "Aggregate runner activity stats per project",
@@ -65,8 +67,7 @@
       "priority": "medium",
       "depends_on": [],
       "created": "2026-04-30T01:00:00Z",
-      "completed": "2026-04-30T13:30:00.000Z",
-      "notes": "SSE at /api/stream watches sessions.json + metrics.jsonl. Client EventSource + 30s fallback. Per-card pulsing dot, orphan-session banner. Defensive parsing fix for variant schemas."
+      "completed": "2026-04-30T13:30:00.000Z"
     },
     "T-004": {
       "title": "Abort function for running agents",

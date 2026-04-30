@@ -5,6 +5,62 @@
 
 ---
 
+## 2026-04-30: T-001 tests for lib modules (claude-opus-4-7)
+
+### Context
+
+Three lib modules with non-trivial parsing logic and no tests. T-003 already
+caught a real bug during smoke test (variant manifest schema). Tests should
+prevent that class of regression and document expected behavior.
+
+### Decisions
+
+- **Vitest, Node environment.** No JSDOM needed - all three modules are
+  filesystem and pure-function code. Forks pool to isolate env mutations.
+- **Real filesystem, no module mocks.** `mkdtempSync(tmpdir(), ...)` per
+  test, override `ROOT_DIR` / `METRICS_FILE` / `SESSIONS_FILE` via
+  `process.env`, clean up in `afterEach`. This tests the actual code paths
+  (file IO, JSON parse, fs.stat) rather than the assumptions of a mock.
+- **Stub `server-only`.** The `server-only` package throws unconditionally
+  when imported outside an RSC context. Aliased to `test/server-only-stub.ts`
+  in `vitest.config.ts`. Production code is unaffected.
+- **Test files live next to source** (`lib/manifest.test.ts`, etc.) and are
+  matched by `include: ['lib/**/*.test.ts']`. Not in a separate `tests/`
+  directory because we want them to share the import alias and stay close
+  to the code they cover.
+
+### Coverage
+
+27 tests, all green:
+
+- `manifest.test.ts` (10 tests): empty root, standard manifest, variant
+  manifest with array tasks and object quick_context, malformed JSON,
+  non-object root, two-level walk depth limit, dotfile/node_modules skip,
+  running-first sort order, orphan sessions for repos outside ROOT_DIR,
+  metrics joining
+- `metrics.test.ts` (8 tests): missing file, valid JSONL grouped by repo,
+  malformed lines skipped, 24h/7d windows, last-run reporting, formatDuration
+  for all magnitude classes
+- `sessions.test.ts` (9 tests): SESSIONS_FILE override, HOME fallback,
+  missing file, valid file, malformed JSON, missing required fields skipped,
+  last log line read with banner-line filtering, non-object root
+
+### Verification
+
+- `npm test` 27/27 pass
+- `npm run build` clean
+- `npm run lint` clean
+
+### Open follow-ups
+
+- No coverage report wired up yet. `@vitest/coverage-v8` is installed but
+  not enforced. Add a threshold gate when there is a clear target.
+- Tests do not exercise the SSE route handler. That code is small and the
+  real test is the smoke test against a running dev server. Skip until
+  someone has a complaint.
+
+---
+
 ## 2026-04-30: T-003 live status via SSE (claude-opus-4-7)
 
 ### Context

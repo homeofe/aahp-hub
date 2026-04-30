@@ -82,12 +82,20 @@ Commit format:
 - `npm run dev` - dev server
 - `npm run build` - production build, must pass before commit
 - `npm run lint` - ESLint, must pass before commit
+- `npm run test` - Vitest run, must pass before commit
+- `npm run test:watch` - Vitest in watch mode for local dev
 - `npm run start` - production server
 
 ## Testing
 
-- No tests yet (T-001 ready). When added, use Vitest.
-- Always run `npm run build` before committing.
+- Vitest under Node environment, suite files at `lib/*.test.ts`
+- `server-only` is aliased to a stub in `vitest.config.ts` so server-side
+  modules can be imported in tests
+- Use `mkdtempSync(tmpdir(), ...)` for fixture roots and clean up in
+  `afterEach`. Override `ROOT_DIR`, `METRICS_FILE`, `SESSIONS_FILE` per
+  test rather than mocking the modules
+- Cover the variant-schema cases: array-shaped tasks, object-shaped
+  `quick_context`, malformed JSONL lines, missing files
 
 ## What Agents Must NOT Do
 
