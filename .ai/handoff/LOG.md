@@ -5,6 +5,84 @@
 
 ---
 
+## 2026-04-30: Akido visual language pass (claude-opus-4-7)
+
+User asked to take over the visual style from `akido-mcp`'s Projects page,
+where GitHub projects are much more legibly laid out: compact cards with a
+left-border status indicator, a name + branch chip header, a hash + commit
+message row, badges, and a row of cyan-tinted action buttons.
+
+### Decisions
+
+- **Lift the palette wholesale.** The akido tokens (`--bg #0d0d16`, `--c1
+  #151522`, `--cy #38b8f8`, `--ok #00e87a`, `--warn #ffbb00`, `--er
+  #ff4060`) replace the prior Atlas-derived tokens. Tailwind v4 inline
+  `@theme` exposes them as `bg-c1`, `text-cy`, `border-br`, etc.
+- **Akido card primitives in CSS.** `.akido-card`, `.akido-link-btn`,
+  `.akido-chip`, `.akido-pill` carry the look. Tailwind utilities still
+  work for layout; the primitives carry the colored-border + button
+  aesthetics that would be ugly to express as a long Tailwind class
+  string. Three left-border states: `is-running` (green), `is-active-tasks`
+  (amber), `is-clean` (faint green).
+- **Card layout follows akido's structure but with AAHP data.**
+  - Header: state dot + monospace project name + phase chip (replaces
+    akido's branch chip)
+  - "Commit row": last-agent chip + first sentence of `quick_context`
+    (replaces akido's hash + commit message). When an agent is running,
+    a dedicated session row replaces this.
+  - Meta row: relative time + colored count badges
+    (`~N` in_progress, `N ready`, `N` done)
+  - Active task list (3 tasks max + "+N more")
+  - Two metric grids: 24h/7d/success/avg, then tokens-i/o/cache/aborted
+  - Action button row: Repo / Issues / PRs / Start (primary) / Abort
+- **Action buttons.** Cyan-soft default; primary (Start) is solid cyan;
+  destructive (Abort) is red-tinted. Disabled state is dim with tooltip.
+  All match akido's visual weight.
+- **Search + filter pills.** New `ProjectFilter` client component with a
+  search input and four pills (`All / Running / Has Tasks / Idle`).
+  Filtering toggles `display: none` on cards rather than re-rendering;
+  matches akido's pattern for zero-flicker.
+- **Tighter spacing.** Card padding `14px 17px` instead of `20px`; gap
+  9px between rows. Header is now compact mono. Grid stays at 3 cols max.
+- **Header reads "AAHP Hub" in mono.** The brand pill in akido is
+  monospace; matches.
+
+### Implementation
+
+- `app/globals.css` rewritten with the akido tokens and the four
+  primitives. Old Atlas tokens removed.
+- `app/layout.tsx` uses `bg-bg text-tx`.
+- `app/page.tsx` rewritten end-to-end (697 -> ~570 lines but the JSX is
+  cleaner; helpers like `cardStateClass`, `cardFilterAttr`, `dotColor`
+  centralise the logic).
+- `app/abort-button.tsx`, `app/run-button.tsx` rewritten to use
+  `.akido-link-btn` with tone variants (`tone-ok`, `tone-warn`, `tone-er`,
+  `is-primary`, `is-disabled`).
+- `app/auto-refresh.tsx` `RefreshButton` and `LiveIndicator` use the new
+  classes.
+- `app/project-filter.tsx` (new): client-side search + filter pills.
+  Operates on data attributes (`data-name`, `data-filter`) the cards
+  already publish.
+
+### Verification
+
+- `npm run build` clean (warnings about Turbopack tracing fs.access in
+  lib/sessions.ts are unchanged from before)
+- `npm run lint` clean
+- `npm test` 51/51 pass
+
+### Open follow-ups
+
+- Per-card sparkline area (akido renders a tiny histogram) is omitted.
+  Could plot run frequency over the last 14 days from `metrics.jsonl`
+  if there is appetite. Not load-bearing.
+- Akido shows global metrics in a top status bar (containers, lights,
+  models). The hub equivalent (runner + control-port + counts) is in
+  the Control Center already; merging both into a single top bar might
+  be a future cleanup.
+
+---
+
 ## 2026-04-30: Live-state gap + label clarity (claude-opus-4-7)
 
 User screenshot showed `aahp run` mid-flight with 7 agents running per the

@@ -1,48 +1,226 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0f1e35;
-  --bg-elevated: #142844;
-  --bg-card: #1a324f;
-  --border: #243d5e;
-  --accent: #00d4ff;
-  --accent-dim: #0099b8;
-  --text: #e6edf3;
-  --text-dim: #8b9bb0;
-  --text-faint: #5d6f87;
-  --status-ready: #4a9eff;
-  --status-progress: #f5c542;
-  --status-done: #4ade80;
-  --status-blocked: #f87171;
-  --status-error: #ef4444;
+  /* Surfaces (akido palette) */
+  --bg: #0d0d16;
+  --c1: #151522;
+  --c2: #1c1c2c;
+  --c3: #232336;
+  --c4: #2a2a3e;
+
+  /* Borders */
+  --br: #252540;
+  --br2: #30acec;
+  --br-glow: rgba(48, 172, 236, 0.55);
+
+  /* Text */
+  --tx: #f0f0ff;
+  --sec: #c8c8e0;
+  --dim: #9090b8;
+
+  /* Status */
+  --ok: #00e87a;
+  --er: #ff4060;
+  --warn: #ffbb00;
+
+  /* Brand */
+  --bl: #4499ff;
+  --pu: #9966ff;
+  --cy: #38b8f8;
+  --cy-hover: #65ccff;
+  --cy-glow: rgba(56, 184, 248, 0.15);
+  --cy-soft: rgba(48, 172, 236, 0.07);
+  --cy-soft-hover: rgba(48, 172, 236, 0.12);
+
+  /* Radii */
+  --r: 8px;
+  --r-lg: 12px;
+
+  /* Status alpha helpers */
+  --ok-soft: rgba(0, 232, 122, 0.14);
+  --warn-soft: rgba(255, 187, 0, 0.14);
+  --er-soft: rgba(255, 64, 96, 0.14);
+
+  /* Typography */
+  --fs-micro: 9px;
+  --fs-tiny: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-lg: 14px;
 }
 
 @theme inline {
   --color-bg: var(--bg);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-bg-card: var(--bg-card);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-dim: var(--accent-dim);
-  --color-text: var(--text);
-  --color-text-dim: var(--text-dim);
-  --color-text-faint: var(--text-faint);
-  --color-status-ready: var(--status-ready);
-  --color-status-progress: var(--status-progress);
-  --color-status-done: var(--status-done);
-  --color-status-blocked: var(--status-blocked);
-  --color-status-error: var(--status-error);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+  --color-c1: var(--c1);
+  --color-c2: var(--c2);
+  --color-c3: var(--c3);
+  --color-c4: var(--c4);
+  --color-br: var(--br);
+  --color-tx: var(--tx);
+  --color-sec: var(--sec);
+  --color-dim: var(--dim);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-er: var(--er);
+  --color-cy: var(--cy);
+  --color-cy-hover: var(--cy-hover);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 }
 
 html,
 body {
   background: var(--bg);
-  color: var(--text);
+  color: var(--tx);
   font-family: var(--font-sans);
+  font-size: var(--fs-base);
 }
 
 body {
   min-height: 100vh;
+}
+
+/* Akido-style reusable primitives */
+
+.akido-card {
+  background: var(--c1);
+  border: 1px solid var(--br);
+  border-left: 3px solid transparent;
+  border-radius: var(--r);
+  padding: 14px 16px;
+  transition: border 0.12s, box-shadow 0.12s, transform 0.12s;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  position: relative;
+}
+.akido-card:hover {
+  border-color: rgba(48, 172, 236, 0.18);
+  border-left-color: var(--cy);
+}
+.akido-card.is-running {
+  border-left-color: var(--ok);
+  box-shadow: 0 0 0 1px rgba(0, 232, 122, 0.2);
+}
+.akido-card.is-active-tasks {
+  border-left-color: var(--warn);
+}
+.akido-card.is-clean {
+  border-left-color: rgba(0, 232, 122, 0.35);
+}
+.akido-card.is-stale {
+  border-left-color: var(--er);
+}
+
+.akido-chip {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  padding: 1px 6px;
+  border-radius: var(--r);
+  background: var(--cy-soft);
+  color: var(--cy);
+  border: 1px solid rgba(48, 172, 236, 0.12);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.akido-link-btn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  padding: 3px 9px;
+  border-radius: var(--r);
+  background: var(--cy-soft);
+  color: var(--cy);
+  border: 1px solid rgba(48, 172, 236, 0.13);
+  cursor: pointer;
+  text-decoration: none;
+  transition: 0.1s;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.akido-link-btn:hover {
+  background: var(--cy-soft-hover);
+  border-color: rgba(48, 172, 236, 0.28);
+  color: var(--cy-hover);
+}
+.akido-link-btn[disabled],
+.akido-link-btn.is-disabled {
+  background: transparent;
+  border-color: var(--br);
+  color: var(--dim);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.akido-link-btn.tone-warn {
+  background: var(--warn-soft);
+  border-color: rgba(255, 187, 0, 0.3);
+  color: var(--warn);
+}
+.akido-link-btn.tone-warn:hover {
+  background: rgba(255, 187, 0, 0.22);
+  color: #ffd34d;
+}
+.akido-link-btn.tone-er {
+  background: var(--er-soft);
+  border-color: rgba(255, 64, 96, 0.3);
+  color: var(--er);
+}
+.akido-link-btn.tone-er:hover {
+  background: rgba(255, 64, 96, 0.22);
+}
+.akido-link-btn.tone-ok {
+  background: var(--ok-soft);
+  border-color: rgba(0, 232, 122, 0.3);
+  color: var(--ok);
+}
+.akido-link-btn.tone-ok:hover {
+  background: rgba(0, 232, 122, 0.22);
+}
+.akido-link-btn.is-primary {
+  background: var(--cy);
+  color: var(--bg);
+  font-weight: 700;
+  border-color: var(--cy);
+}
+.akido-link-btn.is-primary:hover {
+  background: var(--cy-hover);
+  border-color: var(--cy-hover);
+  color: var(--bg);
+}
+
+.akido-section-title {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+}
+
+.akido-pill {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--br);
+  background: transparent;
+  color: var(--sec);
+  cursor: pointer;
+  transition: 0.12s;
+}
+.akido-pill:hover {
+  border-color: var(--cy);
+  color: var(--cy);
+  background: var(--cy-glow);
+}
+.akido-pill.is-active {
+  border-color: var(--cy);
+  color: var(--cy);
+  background: var(--cy-glow);
 }

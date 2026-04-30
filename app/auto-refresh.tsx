@@ -39,9 +39,9 @@ export function RefreshButton(): React.ReactElement {
     <button
       type="button"
       onClick={() => router.refresh()}
-      className="px-3 py-1.5 text-sm rounded border border-border bg-bg-elevated hover:bg-bg-card hover:border-accent text-text transition-colors"
+      className="akido-link-btn"
     >
-      Refresh
+      ↻ Refresh
     </button>
   );
 }
@@ -62,14 +62,14 @@ export function LiveIndicator(): React.ReactElement {
 
   const dot =
     state === 'live'
-      ? 'bg-status-done shadow-[0_0_8px_rgba(74,222,128,0.6)] animate-pulse'
+      ? 'bg-ok shadow-[0_0_8px_rgba(0,232,122,0.6)] animate-pulse'
       : state === 'offline'
-        ? 'bg-status-error'
-        : 'bg-text-faint';
+        ? 'bg-er'
+        : 'bg-dim';
   const label = state === 'live' ? 'live' : state === 'offline' ? 'offline' : 'connecting';
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-text-faint">
+    <span className="inline-flex items-center gap-1.5 text-[var(--fs-xs)] text-dim">
       <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
       <span>{label}</span>
     </span>

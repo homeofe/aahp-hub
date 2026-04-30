@@ -56,28 +56,21 @@ export function AbortButton({
     }
   };
 
-  const baseClasses =
-    'px-2 py-0.5 text-[11px] rounded border font-mono transition-colors';
-
   if (disabled) {
     return (
       <button
         type="button"
         disabled
         title={disabledReason ?? 'unavailable'}
-        className={`${baseClasses} border-border bg-bg-elevated/50 text-text-faint cursor-not-allowed`}
+        className="akido-link-btn is-disabled"
       >
-        abort
+        × abort
       </button>
     );
   }
 
   if (state === 'aborted') {
-    return (
-      <span className={`${baseClasses} border-status-blocked/40 bg-status-blocked/15 text-status-blocked`}>
-        aborted
-      </span>
-    );
+    return <span className="akido-link-btn tone-er">aborted</span>;
   }
 
   if (state === 'error') {
@@ -89,9 +82,9 @@ export function AbortButton({
           setErrorMessage(null);
         }}
         title={errorMessage ?? 'unknown error'}
-        className={`${baseClasses} border-status-error/40 bg-status-error/10 text-status-error hover:bg-status-error/20`}
+        className="akido-link-btn tone-er"
       >
-        retry
+        retry abort
       </button>
     );
   }
@@ -102,9 +95,9 @@ export function AbortButton({
       type="button"
       onClick={handleClick}
       disabled={busy}
-      className={`${baseClasses} border-status-blocked/40 bg-status-blocked/10 text-status-blocked hover:bg-status-blocked/20 ${busy ? 'opacity-50 cursor-progress' : ''}`}
+      className={`akido-link-btn tone-er ${busy ? 'opacity-60 cursor-progress' : ''}`}
     >
-      {busy ? 'aborting...' : 'abort'}
+      {busy ? 'aborting...' : '× abort'}
     </button>
   );
 }

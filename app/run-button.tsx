@@ -67,21 +67,13 @@ export function RunButton({
     }
   };
 
-  const baseClasses =
-    'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border font-medium transition-colors';
-  const primaryIdle =
-    'border-accent/60 bg-accent/15 text-accent hover:bg-accent/25';
-  const secondaryIdle =
-    'border-border bg-bg-elevated text-text hover:bg-bg-card hover:border-accent/50';
-  const idleClasses = variant === 'primary' ? primaryIdle : secondaryIdle;
-
   if (disabled) {
     return (
       <button
         type="button"
         disabled
         title={disabledReason ?? 'unavailable'}
-        className={`${baseClasses} border-border bg-bg-elevated/40 text-text-faint cursor-not-allowed`}
+        className="akido-link-btn is-disabled"
       >
         {label}
       </button>
@@ -89,11 +81,7 @@ export function RunButton({
   }
 
   if (state === 'started') {
-    return (
-      <span className={`${baseClasses} border-status-done/40 bg-status-done/15 text-status-done`}>
-        started
-      </span>
-    );
+    return <span className="akido-link-btn tone-ok">started</span>;
   }
 
   if (state === 'error') {
@@ -105,7 +93,7 @@ export function RunButton({
           setErrorMessage(null);
         }}
         title={errorMessage ?? 'unknown error'}
-        className={`${baseClasses} border-status-error/40 bg-status-error/10 text-status-error hover:bg-status-error/20`}
+        className="akido-link-btn tone-er"
       >
         retry
       </button>
@@ -113,12 +101,13 @@ export function RunButton({
   }
 
   const busy = state === 'pending' || isPending;
+  const cls = variant === 'primary' ? 'akido-link-btn is-primary' : 'akido-link-btn';
   return (
     <button
       type="button"
       onClick={handleClick}
       disabled={busy}
-      className={`${baseClasses} ${idleClasses} ${busy ? 'opacity-60 cursor-progress' : ''}`}
+      className={`${cls} ${busy ? 'opacity-60 cursor-progress' : ''}`}
     >
       {busy ? 'starting...' : label}
     </button>

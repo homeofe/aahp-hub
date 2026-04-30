@@ -24,10 +24,10 @@
       "summary": "All 5 formal tasks done. Future work: filtering, sorting, detail page, GH PRs, log tail, $ pricing, multi-host."
     },
     "LOG.md": {
-      "checksum": "sha256:522f4c529d045d5acd4d7ad4504c47b6754899b57706df3625eb3267d261517f",
-      "updated": "2026-04-30T16:45:00Z",
-      "lines": 552,
-      "summary": "Control Center + Windows fix + live-state gap: filed runner#31, relabeled manifest vs live counters, amber notice when runner active but silent."
+      "checksum": "sha256:8ab943a2cd5c64f8b2138be49c89f5c762878cdb09a9f01e48b02c54a6a65b2a",
+      "updated": "2026-04-30T17:00:00Z",
+      "lines": 630,
+      "summary": "Akido visual language pass: lifted palette, redesigned cards, action buttons, search + filter pills."
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",
