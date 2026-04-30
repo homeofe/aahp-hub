@@ -1,7 +1,7 @@
 # aahp-hub: Current State of the Nation
 
 > Last updated: 2026-04-30 by claude-opus-4-7
-> Commit: T-002 done
+> Commit: T-003 done
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
 > It reflects the *current* reality, not history. History lives in LOG.md.
@@ -11,11 +11,12 @@
 <!-- SECTION: summary -->
 ## Summary
 
-aahp-hub v0.1.0 - web dashboard for the AAHP runner ecosystem. Initial
-scaffold plus T-002: the dashboard now reads `~/.aahp/metrics.jsonl` and
-shows per-project runner activity (runs 24h / 7d, success rate, average
-duration) and a global footer summary. Token tracking is deferred until
-`aahp-runner` records token counts in its `RunMetric` schema.
+aahp-hub v0.1.0 - web dashboard for the AAHP runner ecosystem. Three tasks
+done: scaffold, T-002 metrics aggregation, T-003 live status via SSE. The
+dashboard now shows running agents in real time (pulsing dot, task ID,
+backend, last log line), with an SSE-driven refresh that fires within 250 ms
+of any change to `sessions.json` or `metrics.jsonl`. Defensive manifest
+parsing handles the variant schemas seen in `elvatis-defense` and similar.
 <!-- /SECTION: summary -->
 
 ---
@@ -25,9 +26,12 @@ duration) and a global footer summary. Token tracking is deferred until
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `npm install` | (Verified) | next 16.2.4, react 19.2, tailwindcss 4 - 2026-04-30 |
-| `npm run build` | (Verified) | Clean after T-002 - 2026-04-30 |
+| `npm install` | (Verified) | next 16.2.4, react 19.2, tailwindcss 4 |
+| `npm run build` | (Verified) | Clean after T-003 - 2026-04-30 |
 | `npm run lint` | (Verified) | Clean - 2026-04-30 |
+| SSE smoke test | (Verified) | `/api/stream` emits hello + change on `sessions.json` write |
+| Page render with live session | (Verified) | Card shows running badge and session row |
+| Schema-variant manifest | (Verified) | `elvatis-defense` (array tasks, object quick_context) renders without crashing |
 | Tests | (Missing) | No tests yet (T-001) |
 <!-- /SECTION: build_health -->
 
@@ -38,13 +42,14 @@ duration) and a global footer summary. Token tracking is deferred until
 
 | Component | Path | State | Notes |
 |-----------|------|-------|-------|
-| Manifest scanner | `lib/manifest.ts` | (Verified) | Walks ROOT_DIR, parses with error capture, joins metrics |
-| Metrics loader | `lib/metrics.ts` | (Verified) | Reads JSONL, defensive parse, 24h/7d windows |
-| Dashboard page | `app/page.tsx` | (Verified) | Server Component, force-dynamic, metrics row per card + global footer |
-| Auto-refresh | `app/auto-refresh.tsx` | (Verified) | Client component, 30s interval |
-| Relative time | `app/timestamp.tsx` | (Verified) | Client component, ticks every 1s |
+| Manifest scanner | `lib/manifest.ts` | (Verified) | Defensive coercion for variant schemas; sorts running projects first |
+| Metrics loader | `lib/metrics.ts` | (Verified) | JSONL parse, 24h/7d windows |
+| Sessions loader | `lib/sessions.ts` | (Verified) | Reads `~/.aahp/sessions.json`, looks up last log line per repo |
+| SSE endpoint | `app/api/stream/route.ts` | (Verified) | mtime poll on sessions.json + metrics.jsonl, heartbeat every 15s |
+| Dashboard page | `app/page.tsx` | (Verified) | Force-dynamic; running cards pulsing, orphan-session banner, dual footer |
+| Auto-refresh / Live indicator | `app/auto-refresh.tsx` | (Verified) | EventSource + 30s polling fallback; live / connecting / offline state |
+| Relative time | `app/timestamp.tsx` | (Verified) | Ticks every 1s |
 | Theme | `app/globals.css` | (Verified) | Tailwind v4 CSS-first config |
-| Layout | `app/layout.tsx` | (Verified) | Sets dark bg / text classes |
 <!-- /SECTION: components -->
 
 ---
@@ -54,10 +59,10 @@ duration) and a global footer summary. Token tracking is deferred until
 
 | Package | Version | Notes |
 |---------|---------|-------|
-| `next` | 16.2.4 | Latest at scaffold time, App Router |
+| `next` | 16.2.4 | App Router |
 | `react` | 19.2.4 | |
 | `react-dom` | 19.2.4 | |
-| `tailwindcss` | ^4 | CSS-first config, no JS config file |
+| `tailwindcss` | ^4 | CSS-first config |
 | `@tailwindcss/postcss` | ^4 | |
 | `typescript` | ^5 | strict mode |
 | `server-only` | latest | Marks server-side modules |
@@ -70,10 +75,9 @@ duration) and a global footer summary. Token tracking is deferred until
 
 | Gap | Severity | Description |
 |-----|----------|-------------|
-| Tests | MEDIUM | No unit tests for `scanProjects` or `loadMetrics` yet (T-001) |
-| Live status | MEDIUM | Polling-based; no real-time view of running agents (T-003) |
-| Abort | MEDIUM | No way to abort a running agent from the hub (T-004) |
-| Token tracking | LOW | Blocked on runner-side change (`RunMetric` schema) |
+| Tests | MEDIUM | No unit tests yet (T-001) |
+| Abort | MEDIUM | No way to abort a running agent (T-004, needs runner endpoint) |
+| Token tracking | LOW | Blocked on runner-side change to `RunMetric` (T-005) |
 | Auth | (deferred) | Internal tool only, intentionally none |
 <!-- /SECTION: what_is_missing -->
 
@@ -84,9 +88,10 @@ duration) and a global footer summary. Token tracking is deferred until
 
 | Item | Resolution |
 |------|-----------|
-| T-002 metrics aggregation | `lib/metrics.ts` reads `~/.aahp/metrics.jsonl` (override via `METRICS_FILE`), groups by repo, computes 24h/7d/success/avg-duration |
-| Per-card metrics row | Cards show 24h/7d run counts, success rate (color-coded), avg duration |
-| Global metrics footer | Total runs, 24h, 7d, success rate; falls back to "no metrics yet" or shows error |
-| NEXT_ACTIONS realigned | Tasks now: T-001 tests, T-002 done, T-003 live status, T-004 abort. Detail page demoted to future work. |
-| Token caveat documented | README + LOG explain runner does not yet record tokens; tracked as future work |
+| T-003 SSE endpoint | `/api/stream` watches sessions.json + metrics.jsonl mtime, sends hello + change + heartbeat events |
+| Live indicator | Header shows live / connecting / offline based on EventSource state |
+| Per-card running view | Pulsing green dot, session row with taskId, backend, started-at, last log line |
+| Sort order | Projects with running agents bubble to the top |
+| Orphan sessions | Banner when an active session is for a project outside `ROOT_DIR` |
+| Variant manifest parsing | `coerceString` and `normaliseTasks` handle array-shaped tasks and object-shaped quick_context (seen in `elvatis-defense`) |
 <!-- /SECTION: resolved_this_session -->

@@ -23,6 +23,8 @@ that gap.
 For each project found under `ROOT_DIR`:
 
 - Project name and phase (`research`, `architect`, `implement`, `review`, `done`)
+- A pulsing green dot when an agent is currently running, with the live task
+  ID, backend, started-at, and the last log line being streamed
 - Active task counts (in progress, ready, done)
 - Up to three active task titles with their IDs
 - Runner activity: runs in the last 24h and 7d, success rate, average duration
@@ -31,9 +33,11 @@ For each project found under `ROOT_DIR`:
 - A relative timestamp ("3m ago") of the last session
 - A link to the project's GitHub repo when the manifest carries one
 
-The page polls itself every 30 seconds via `router.refresh()` so values stay
-current. There is no auth, no database, and no WebSocket. State lives in the
-`MANIFEST.json` files on disk and the `aahp-runner` metrics file.
+Live updates use Server-Sent Events. The hub watches `~/.aahp/sessions.json`
+and `~/.aahp/metrics.jsonl` for mtime changes; whenever either file changes,
+all connected clients refresh within ~250 ms. A 30 second polling fallback
+runs in parallel so the page stays current even if SSE drops. The header
+shows a connection indicator: live / connecting / offline.
 
 ### A note on token tracking
 
@@ -62,6 +66,7 @@ Open [http://localhost:3000](http://localhost:3000).
 |----------|---------|-------------|
 | `ROOT_DIR` | `~/Workspace` | Directory the hub scans for `.ai/handoff/MANIFEST.json` files. Should match the root directory configured in `aahp-runner`. |
 | `METRICS_FILE` | `~/.aahp/metrics.jsonl` | Path to the `aahp-runner` JSONL metrics file. Override only if you point `aahp-runner` at a non-default location. |
+| `SESSIONS_FILE` | `~/.aahp/sessions.json` | Path to the live sessions file written by `aahp-runner` and `aahp-orchestrator`. The hub reads this for the running-agent view and SSE stream. |
 
 The scanner walks two levels deep, skips dotfiles and `node_modules`, and
 expects each project to have a `.ai/handoff/MANIFEST.json` at its root. If a

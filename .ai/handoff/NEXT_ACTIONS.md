@@ -7,52 +7,41 @@
 
 ## Active Tasks
 
-### T-001: Add unit tests for scanProjects
+### T-001: Add unit tests for scanProjects, loadMetrics, loadSessions
 - **Priority:** medium
 - **Status:** ready
-- **Why:** Scanner is the only non-trivial logic in the MVP. Walking, parsing,
-  and error capture should be covered before the surface area grows.
+- **Why:** Three non-trivial parsers (manifest scanner with messy-shape coercion,
+  metrics aggregator, sessions reader) and zero tests. Especially worth covering:
+  the `normaliseTasks` array vs object branch, and `coerceString` for object
+  `quick_context` fields seen in the wild (`elvatis-defense`).
 - **Done when:** Vitest suite covers root resolution, two-level walk, valid
-  manifest parsing, malformed JSON, and missing ROOT_DIR.
-
-### T-002: Aggregate runner activity stats per project
-- **Priority:** high
-- **Status:** ready
-- **Why:** The hub exists to show what the headless runner has been spending.
-  `aahp-runner` writes a JSONL to `~/.aahp/metrics.jsonl` via `recordMetric`
-  (`metrics-store.ts`). One line per agent run with repo, taskId, backend,
-  durationMs, turns, success, committed.
-- **Note on tokens:** the runner does NOT currently record LLM token counts.
-  `RunMetric` has `turns` but no input/output token totals. Showing real
-  token usage requires a runner-side change first (extend `RunMetric` and
-  capture `usage` from each backend response). Until then, the hub aggregates
-  what is actually available: runs, success rate, duration, turns.
-- **Done when:** Each card shows runs in the last 24h and 7d, success rate,
-  average duration, and last run timestamp. Footer shows totals across all
-  projects.
-
-### T-003: Live status of running agents (WebSocket or SSE)
-- **Priority:** medium
-- **Status:** ready
-- **Why:** 30s polling is fine for the post-mortem view but blind to the
-  current run. The runner already streams to a `StatusBoard` (`status-board.ts`)
-  and writes per-agent log files. The hub should subscribe to those updates
-  rather than re-reading manifests.
-- **Done when:** Card highlights running agents in real time (sub-second).
-  Mechanism is either SSE from a Next.js route handler that tails the runner's
-  log files, or a small WebSocket bridge in `aahp-runner`. Choose SSE first;
-  it is simpler and survives the runner being stopped.
+  manifest, malformed JSON, schema-variant manifest (array tasks, object
+  quick_context), missing ROOT_DIR, missing metrics/sessions files, malformed
+  JSONL lines.
 
 ### T-004: Abort function for running agents
 - **Priority:** medium
 - **Status:** ready
-- **Why:** When an agent is burning tokens on the wrong path there is currently
-  no way to stop it from the hub. Users SSH to the runner and kill the process.
+- **Depends on:** runner-side endpoint
+- **Why:** When an agent is burning tokens on the wrong path there is no way
+  to stop it from the hub.
 - **Done when:** Each running-agent row has an Abort button. Pressing it sends
   a signal to the runner (HTTP endpoint or named pipe), which the runner
   handles by terminating the agent's child process and recording an aborted
-  metric. Requires a small runner-side endpoint; document it in the runner
-  repo.
+  metric. Requires a small runner-side endpoint; document it in
+  `homeofe/aahp-runner` first.
+
+### T-005: Token tracking (runner-side prerequisite)
+- **Priority:** medium
+- **Status:** ready
+- **Depends on:** `homeofe/aahp-runner` change
+- **Why:** Today the hub shows `turns` and `durationMs`; users want token
+  spend per task. The runner does not capture token totals from the backends.
+- **Done when:** `aahp-runner`'s `RunMetric` carries `inputTokens` /
+  `outputTokens` populated from the backend `usage` field. Hub adds a token
+  column to the per-card metrics row and a token total to the global footer.
+  Track the runner-side change as an issue on `homeofe/aahp-runner`, not
+  here.
 
 ---
 
@@ -61,10 +50,10 @@
 | Area | Suggestion | Why |
 |------|-----------|-----|
 | Filtering | UI to filter by phase or hide done projects | Useful once project count grows |
-| Sorting | Sort cards by project name, last activity, or task count | Currently sorted by last timestamp only |
+| Sorting | Sort cards by project name, last activity, or task count | Currently sort puts running agents first, then by last timestamp |
 | Detail page | `/projects/[name]` with full STATUS.md and recent LOG entries | Card truncates to 3 active tasks |
 | GitHub integration | Show open PRs from each project's repo | Closes the loop with `aahp-runner` PR creation |
-| Token tracking (runner-side) | Extend `RunMetric` with input/output tokens captured from backend `usage` | Prerequisite for real token cost view |
+| Per-session log tail | Stream the running agent's full log, not just the last line | Higher fidelity than a single line; needs a log-tailing route handler |
 
 ---
 
@@ -72,4 +61,6 @@
 
 | ID | Task | Resolution |
 |----|------|-----------|
+| T-003 | Live status of running agents | SSE route at `/api/stream` watches `sessions.json` and `metrics.jsonl` mtime; client subscribes and triggers `router.refresh()` on change. Cards get a pulsing dot and a session row when an agent is running. Live / offline indicator in header. |
+| T-002 | Aggregate runner activity stats | `lib/metrics.ts` reads `~/.aahp/metrics.jsonl` and renders 24h/7d/success/avg-duration per card. |
 | - | Initial scaffold | Next.js 15, Tailwind v4, dark theme, scanner, dashboard MVP |

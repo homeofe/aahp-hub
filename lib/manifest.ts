@@ -3,6 +3,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { loadMetrics, type ProjectMetrics } from './metrics';
+import { loadSessions, type ActiveSession } from './sessions';
 
 export type TaskStatus = 'ready' | 'in_progress' | 'done' | 'blocked' | string;
 
@@ -26,12 +27,12 @@ export interface ManifestLastSession {
 }
 
 export interface RawManifest {
-  aahp_version?: string;
-  project?: string;
-  github_repo?: string;
-  last_session?: ManifestLastSession;
-  quick_context?: string;
-  tasks?: Record<string, ManifestTask>;
+  aahp_version?: unknown;
+  project?: unknown;
+  github_repo?: unknown;
+  last_session?: unknown;
+  quick_context?: unknown;
+  tasks?: unknown;
 }
 
 export interface ProjectSummary {
@@ -48,6 +49,7 @@ export interface ProjectSummary {
   lastUpdated: string;
   githubRepo: string | null;
   metrics: ProjectMetrics | null;
+  activeSessions: ActiveSession[];
 }
 
 export interface ScanResult {
@@ -64,6 +66,11 @@ export interface ScanResult {
     runs7d: number;
     successRate: number;
   };
+  activeSessions: ActiveSession[];
+  sessionsFile: string;
+  sessionsAvailable: boolean;
+  sessionsError: string | null;
+  orphanSessions: ActiveSession[];
 }
 
 const MANIFEST_REL_PATH = ['.ai', 'handoff', 'MANIFEST.json'];
@@ -128,15 +135,65 @@ async function findManifests(root: string): Promise<string[]> {
   return found;
 }
 
+function coerceString(value: unknown, fallback = ''): string {
+  if (typeof value === 'string') return value;
+  if (value == null) return fallback;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function normaliseTasks(raw: unknown): [string, ManifestTask][] {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) {
+    const entries: [string, ManifestTask][] = [];
+    for (const [i, item] of raw.entries()) {
+      if (!item || typeof item !== 'object') continue;
+      const obj = item as Record<string, unknown>;
+      const id = typeof obj['id'] === 'string' ? obj['id'] : `T-${String(i).padStart(3, '0')}`;
+      entries.push([
+        id,
+        {
+          title: coerceString(obj['title']),
+          status: typeof obj['status'] === 'string' ? obj['status'] : 'unknown',
+          priority: typeof obj['priority'] === 'string' ? obj['priority'] : undefined,
+        },
+      ]);
+    }
+    return entries;
+  }
+  if (typeof raw === 'object') {
+    const entries: [string, ManifestTask][] = [];
+    for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (!value || typeof value !== 'object') continue;
+      const obj = value as Record<string, unknown>;
+      entries.push([
+        id,
+        {
+          title: coerceString(obj['title']),
+          status: typeof obj['status'] === 'string' ? obj['status'] : 'unknown',
+          priority: typeof obj['priority'] === 'string' ? obj['priority'] : undefined,
+        },
+      ]);
+    }
+    return entries;
+  }
+  return [];
+}
+
 function summarize(
   manifestPath: string,
   manifest: RawManifest,
   metricsByProject: Map<string, ProjectMetrics>,
+  sessionsByProject: Map<string, ActiveSession[]>,
 ): ProjectSummary {
   const projectPath = manifestPath.replace(/[\\/]\.ai[\\/]handoff[\\/]MANIFEST\.json$/, '');
-  const name = manifest.project ?? projectPath.split(/[\\/]/).pop() ?? 'unknown';
-  const tasks = manifest.tasks ?? {};
-  const taskEntries = Object.entries(tasks);
+  const projectField = typeof manifest.project === 'string' ? manifest.project : null;
+  const name = projectField ?? projectPath.split(/[\\/]/).pop() ?? 'unknown';
+  const taskEntries = normaliseTasks(manifest.tasks);
 
   const active = taskEntries
     .filter(([, t]) => t.status === 'in_progress' || t.status === 'ready')
@@ -146,36 +203,65 @@ function summarize(
   const inProgress = taskEntries.filter(([, t]) => t.status === 'in_progress').length;
   const done = taskEntries.filter(([, t]) => t.status === 'done').length;
 
+  const lastSession = isRecord(manifest.last_session) ? manifest.last_session : null;
+  const phase = lastSession ? coerceString(lastSession['phase'], 'unknown') : 'unknown';
+  const lastAgent = lastSession ? coerceString(lastSession['agent'], 'unknown') : 'unknown';
+  const lastUpdated = lastSession ? coerceString(lastSession['timestamp']) : '';
+
+  const githubRepo =
+    typeof manifest.github_repo === 'string' ? manifest.github_repo : null;
+
   return {
     name,
     path: projectPath,
-    phase: manifest.last_session?.phase ?? 'unknown',
+    phase,
     activeTasks: active,
     readyTasks: ready,
     inProgressTasks: inProgress,
     doneTasks: done,
     totalTasks: taskEntries.length,
-    lastAgent: manifest.last_session?.agent ?? 'unknown',
-    quickContext: manifest.quick_context ?? '',
-    lastUpdated: manifest.last_session?.timestamp ?? '',
-    githubRepo: manifest.github_repo ?? null,
+    lastAgent,
+    quickContext: coerceString(manifest.quick_context),
+    lastUpdated,
+    githubRepo,
     metrics: metricsByProject.get(name) ?? null,
+    activeSessions: sessionsByProject.get(name) ?? [],
   };
 }
 
 export async function scanProjects(): Promise<ScanResult> {
   const rootDir = resolveRootDir();
   const scannedAt = new Date().toISOString();
-  const metrics = await loadMetrics();
+
+  const [metrics, sessionsRes] = await Promise.all([loadMetrics(), loadSessions()]);
+
+  const sessionsByProject = new Map<string, ActiveSession[]>();
+  for (const s of sessionsRes.sessions) {
+    const bucket = sessionsByProject.get(s.repoName);
+    if (bucket) bucket.push(s);
+    else sessionsByProject.set(s.repoName, [s]);
+  }
+
   const metricsMeta = {
     metricsFile: metrics.metricsFile,
     metricsAvailable: metrics.available,
     metricsError: metrics.error,
     totals: metrics.totals,
+    activeSessions: sessionsRes.sessions,
+    sessionsFile: sessionsRes.sessionsFile,
+    sessionsAvailable: sessionsRes.available,
+    sessionsError: sessionsRes.error,
   };
 
   if (!rootDir) {
-    return { projects: [], errors: [], rootDir: null, scannedAt, ...metricsMeta };
+    return {
+      projects: [],
+      errors: [],
+      rootDir: null,
+      scannedAt,
+      orphanSessions: sessionsRes.sessions,
+      ...metricsMeta,
+    };
   }
 
   const errors: { path: string; message: string }[] = [];
@@ -184,7 +270,14 @@ export async function scanProjects(): Promise<ScanResult> {
     manifestPaths = await findManifests(rootDir);
   } catch (err) {
     errors.push({ path: rootDir, message: err instanceof Error ? err.message : String(err) });
-    return { projects: [], errors, rootDir, scannedAt, ...metricsMeta };
+    return {
+      projects: [],
+      errors,
+      rootDir,
+      scannedAt,
+      orphanSessions: sessionsRes.sessions,
+      ...metricsMeta,
+    };
   }
 
   const projects: ProjectSummary[] = [];
@@ -192,7 +285,7 @@ export async function scanProjects(): Promise<ScanResult> {
     try {
       const raw = await readFile(manifestPath, 'utf8');
       const manifest = parseManifest(raw);
-      projects.push(summarize(manifestPath, manifest, metrics.byProject));
+      projects.push(summarize(manifestPath, manifest, metrics.byProject, sessionsByProject));
     } catch (err) {
       errors.push({
         path: manifestPath,
@@ -202,12 +295,25 @@ export async function scanProjects(): Promise<ScanResult> {
   }
 
   projects.sort((a, b) => {
+    const aActive = a.activeSessions.length > 0 ? 0 : 1;
+    const bActive = b.activeSessions.length > 0 ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
     const aTime = a.lastUpdated || '';
     const bTime = b.lastUpdated || '';
     return bTime.localeCompare(aTime);
   });
 
-  return { projects, errors, rootDir, scannedAt, ...metricsMeta };
+  const projectNames = new Set(projects.map((p) => p.name));
+  const orphanSessions = sessionsRes.sessions.filter((s) => !projectNames.has(s.repoName));
+
+  return {
+    projects,
+    errors,
+    rootDir,
+    scannedAt,
+    orphanSessions,
+    ...metricsMeta,
+  };
 }
 
 export function rootDirIsConfigured(): boolean {

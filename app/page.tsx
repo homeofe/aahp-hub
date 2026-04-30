@@ -1,6 +1,7 @@
 import { scanProjects, type ProjectSummary, type TaskStatus } from '@/lib/manifest';
 import { formatDuration } from '@/lib/metrics';
-import { AutoRefresh, RefreshButton } from './auto-refresh';
+import type { ActiveSession } from '@/lib/sessions';
+import { AutoRefresh, LiveIndicator, RefreshButton } from './auto-refresh';
 import { RelativeTime } from './timestamp';
 
 export const dynamic = 'force-dynamic';
@@ -37,12 +38,23 @@ function phaseColor(phase: string): string {
 }
 
 function ProjectCard({ project }: { project: ProjectSummary }): React.ReactElement {
+  const isRunning = project.activeSessions.length > 0;
   return (
-    <div className="rounded-lg border border-border bg-bg-card p-5 flex flex-col gap-3 hover:border-accent/50 transition-colors">
+    <div
+      className={`rounded-lg border ${
+        isRunning ? 'border-status-done/60 shadow-[0_0_0_1px_rgba(74,222,128,0.15)]' : 'border-border'
+      } bg-bg-card p-5 flex flex-col gap-3 hover:border-accent/50 transition-colors`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-text truncate" title={project.name}>
-            {project.name}
+          <h2 className="text-lg font-semibold text-text truncate flex items-center gap-2" title={project.name}>
+            {isRunning && (
+              <span
+                className="h-2 w-2 rounded-full bg-status-done shadow-[0_0_6px_rgba(74,222,128,0.7)] animate-pulse shrink-0"
+                aria-label="agent running"
+              />
+            )}
+            <span className="truncate">{project.name}</span>
           </h2>
           <p className="text-xs text-text-faint font-mono truncate" title={project.path}>
             {project.path}
@@ -54,6 +66,14 @@ function ProjectCard({ project }: { project: ProjectSummary }): React.ReactEleme
           {project.phase}
         </span>
       </div>
+
+      {isRunning && (
+        <div className="rounded border border-status-done/40 bg-status-done/10 p-2 text-xs space-y-1">
+          {project.activeSessions.map((s) => (
+            <ActiveSessionRow key={`${s.repoName}-${s.taskId}-${s.startedAt}`} session={s} />
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 text-xs">
         {project.inProgressTasks > 0 && (
@@ -151,6 +171,54 @@ function ProjectCard({ project }: { project: ProjectSummary }): React.ReactEleme
   );
 }
 
+function ActiveSessionRow({ session }: { session: ActiveSession }): React.ReactElement {
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-status-done shrink-0">
+          {session.taskId} {session.backend}
+        </span>
+        {session.startedAt && (
+          <span className="text-text-faint">
+            <RelativeTime iso={session.startedAt} />
+          </span>
+        )}
+      </div>
+      {session.taskTitle && (
+        <p className="text-text-dim truncate" title={session.taskTitle}>
+          {session.taskTitle}
+        </p>
+      )}
+      {session.lastLine && (
+        <p className="font-mono text-text-faint truncate" title={session.lastLine}>
+          &gt; {session.lastLine}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function OrphanSessionsBanner({ sessions }: { sessions: ActiveSession[] }): React.ReactElement {
+  return (
+    <section className="mb-6 rounded-lg border border-status-progress/40 bg-status-progress/10 p-4">
+      <h2 className="text-sm font-semibold text-status-progress mb-2">
+        {sessions.length} active session{sessions.length === 1 ? '' : 's'} outside ROOT_DIR
+      </h2>
+      <ul className="space-y-1.5 text-xs">
+        {sessions.map((s) => (
+          <li key={`${s.repoName}-${s.taskId}-${s.startedAt}`}>
+            <span className="font-mono text-status-progress">{s.repoName}</span>
+            <span className="text-text-faint"> | </span>
+            <span className="font-mono text-text-dim">{s.taskId}</span>
+            <span className="text-text-faint"> | </span>
+            <span className="text-text-dim">{s.taskTitle}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function EmptyState({ rootDir, hasErrors }: { rootDir: string | null; hasErrors: boolean }) {
   if (!rootDir) {
     return (
@@ -191,15 +259,28 @@ export default async function Page(): Promise<React.ReactElement> {
             <h1 className="text-2xl font-bold text-text">
               AAHP <span className="text-accent">Hub</span>
             </h1>
-            <p className="text-sm text-text-dim mt-1">
-              Last updated: <RelativeTime iso={result.scannedAt} />
+            <p className="text-sm text-text-dim mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <LiveIndicator />
+              <span className="text-text-faint">|</span>
+              <span>
+                Last updated: <RelativeTime iso={result.scannedAt} />
+              </span>
               {result.rootDir && (
                 <>
-                  {' '}
+                  <span className="text-text-faint">|</span>
                   <span className="text-text-faint">
-                    | {result.projects.length} project
+                    {result.projects.length} project
                     {result.projects.length === 1 ? '' : 's'} in{' '}
                     <code className="font-mono">{result.rootDir}</code>
+                  </span>
+                </>
+              )}
+              {result.activeSessions.length > 0 && (
+                <>
+                  <span className="text-text-faint">|</span>
+                  <span className="text-status-done">
+                    {result.activeSessions.length} agent
+                    {result.activeSessions.length === 1 ? '' : 's'} running
                   </span>
                 </>
               )}
@@ -207,6 +288,10 @@ export default async function Page(): Promise<React.ReactElement> {
           </div>
           <RefreshButton />
         </header>
+
+        {result.orphanSessions.length > 0 && (
+          <OrphanSessionsBanner sessions={result.orphanSessions} />
+        )}
 
         {result.projects.length === 0 ? (
           <EmptyState rootDir={result.rootDir} hasErrors={result.errors.length > 0} />
@@ -278,6 +363,23 @@ export default async function Page(): Promise<React.ReactElement> {
             ) : (
               <span>
                 metrics: no <span className="font-mono">{result.metricsFile}</span> yet
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {result.sessionsError ? (
+              <span className="text-status-error">sessions: {result.sessionsError}</span>
+            ) : result.sessionsAvailable ? (
+              <span>
+                sessions:{' '}
+                <span className="text-text-dim">
+                  {result.activeSessions.length} active
+                </span>
+                <span className="text-text-faint/70 font-mono"> {result.sessionsFile}</span>
+              </span>
+            ) : (
+              <span>
+                sessions: no <span className="font-mono">{result.sessionsFile}</span> yet
               </span>
             )}
           </div>

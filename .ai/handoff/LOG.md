@@ -5,6 +5,102 @@
 
 ---
 
+## 2026-04-30: T-003 live status via SSE (claude-opus-4-7)
+
+### Context
+
+T-002 shipped runner activity stats but the view was still after-the-fact:
+all numbers were aggregated from completed runs. The user wanted to see
+agents *while* they are running, with no runner-side change.
+
+### Discovery
+
+`aahp-runner` already writes `~/.aahp/sessions.json` for exactly this
+purpose. Format documented inline in `cli.ts`:
+`{ updatedAt, sessions: [{ repoPath, repoName, taskId, taskTitle, backend,
+startedAt }] }`. The same file is also written by `aahp-orchestrator`'s
+`SessionMonitor`. So the hub can show live status entirely from existing
+data.
+
+Per-agent log files live at either `<repo>/.ai/logs/<date>.log` or
+`~/.aahp/logs/<repo>-<date>.log`. The runner's CLI uses `getLastLogLine` to
+strip ANSI noise and slice to a fixed width; we follow the same pattern.
+
+### Decisions
+
+- **SSE over WebSocket.** Simpler, one-way, survives the runner being
+  stopped. No new server state, no protocol negotiation.
+- **mtime polling, not fs.watch.** `fs.watch` is unreliable on Windows when
+  a writer replaces a file atomically (which most JSON serialisers do).
+  Stat-based polling at 1 Hz is reliable and cheap on two small files.
+- **Per-connection poll loop.** Each SSE client runs its own loop. Removes
+  shared state and broadcaster bookkeeping. Acceptable because clients are
+  expected to be a single internal user, not many.
+- **250 ms debounce on the client refresh.** Burst writes (the runner
+  rewriting `sessions.json` while metrics rolls forward) collapse to one
+  refresh.
+- **30 s polling fallback alongside SSE.** If the EventSource drops or a
+  proxy buffers it, the page still updates within 30 s.
+- **Sort running projects first.** A running agent matters more than a
+  3-day-old activity timestamp.
+
+### Implementation
+
+- `lib/sessions.ts`: reads sessions.json, defensive coercion of every
+  field, looks up last log line via the same candidate-path order as
+  the runner. Exposes `watchTargets()` for the SSE loop to stat both files.
+- `app/api/stream/route.ts`: Node runtime, returns a `text/event-stream`
+  ReadableStream. Polls watch targets every second; emits a `change` event
+  whenever an mtime moves. Heartbeat every 15 s to keep proxies happy.
+  Cleans up on `req.signal.abort`.
+- `app/auto-refresh.tsx`: `AutoRefresh` opens an EventSource and calls
+  `router.refresh()` on change (debounced). `LiveIndicator` shows
+  connection state. 30 s polling fallback runs in parallel.
+- `app/page.tsx`: per-card pulsing dot when `activeSessions.length > 0`,
+  green-tinted session row with taskId, backend, relative startedAt, and
+  the last log line. Header shows the count of running agents and the live
+  indicator. New `OrphanSessionsBanner` for active sessions whose repoName
+  is not under ROOT_DIR.
+
+### Robustness fix discovered during smoke test
+
+The first dev-server smoke test crashed with "Objects are not valid as a
+React child (found: object with keys {project, stack, last_session,
+active_task})". Root cause: `elvatis-defense/.ai/handoff/MANIFEST.json`
+uses a non-spec schema where `quick_context` is an object (not a string)
+and `tasks` is an array (not an object). The MVP code passed the object
+straight to JSX and React refused to render it.
+
+Fix: added `coerceString` and `normaliseTasks` helpers in `lib/manifest.ts`.
+Loosened `RawManifest` field types to `unknown` and validated at the
+coercion boundary. One bad manifest in the wild can no longer take down
+the page; the worst case is the project renders with empty fields.
+
+This belongs in CONVENTIONS as the "failure-tolerant parsing" rule already
+calls out, so no rule change is needed - just enforcement.
+
+### Verification
+
+- `npm run build` clean
+- `npm run lint` clean
+- `curl -N http://localhost:3000/api/stream` shows `event: hello` then
+  `event: change` after writing to `sessions.json`
+- Page renders running session ("aahp-runner / smoke test") with pulsing
+  dot and last log line
+- `elvatis-defense` (variant schema) renders without crashing
+- Page returns HTTP 200 with active and idle sessions
+
+### Open questions
+
+- Whether to tail the running agent's log file inside the SSE stream
+  rather than just refreshing the page. Right now the user sees the last
+  line as of the last mtime change, which lags behind the agent. A
+  per-session log tail would be richer but more complex. Future work.
+- Whether to expose `/api/sessions` as a JSON endpoint for non-browser
+  clients (e.g. orchestrator). Defer until requested.
+
+---
+
 ## 2026-04-30: T-002 runner activity stats (claude-opus-4-7)
 
 ### Context
