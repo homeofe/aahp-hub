@@ -24,10 +24,10 @@
       "summary": "All 5 formal tasks done. Future work: filtering, sorting, detail page, GH PRs, log tail, $ pricing, multi-host."
     },
     "LOG.md": {
-      "checksum": "sha256:8ab943a2cd5c64f8b2138be49c89f5c762878cdb09a9f01e48b02c54a6a65b2a",
-      "updated": "2026-04-30T17:00:00Z",
-      "lines": 630,
-      "summary": "Akido visual language pass: lifted palette, redesigned cards, action buttons, search + filter pills."
+      "checksum": "sha256:9bdafc6e5da00ce8e362a526f893dfedaac59f0de785204e3695eed29068cf04",
+      "updated": "2026-04-30T17:15:00Z",
+      "lines": 729,
+      "summary": "Akido pass + sidebar nav + /metrics + /sessions + /logs pages. Spawn-window fix via start /B. lib/analytics.ts builds breakdowns from JSONL."
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",

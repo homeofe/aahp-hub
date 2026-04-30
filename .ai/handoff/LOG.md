@@ -5,6 +5,105 @@
 
 ---
 
+## 2026-04-30: Sidebar nav + metrics page + spawn window fix (claude-opus-4-7)
+
+User asked for three things at once: hide the visible Node console
+window when the hub spawns `aahp run`, add a sidebar navigation, and
+expose more of the metrics that already live in `~/.aahp/metrics.jsonl`.
+
+### Spawn window fix
+
+When the hub did `cmd.exe /d /s /c aahp.cmd run --all` with
+`detached: true, stdio: 'ignore', windowsHide: true`, a Node console
+window still flashed. Cause: `windowsHide` only suppresses cmd.exe's
+window. cmd.exe then ran `aahp.cmd` which fork-exec'd `node.exe`, and
+`node.exe` allocated its own console because nothing told it not to.
+
+Fix: wrap the call in Windows' `start /B`:
+
+```
+cmd.exe /d /s /c start "" /B /MIN aahp.cmd run --all
+```
+
+`start /B` runs the next executable without creating a new console.
+The empty `""` is required because `start`'s first quoted token is the
+window title; without it, Windows would interpret `aahp.cmd` as a
+title and try to run nothing. `/MIN` guards against any console that
+slips through. Detection (`spawnSync('aahp.cmd', '--version')`) keeps
+its existing path because that command runs synchronously and finishes
+fast enough that the console allocation is never visible.
+
+Refactored as `detachedSpawnArgs(...)` next to the existing
+`spawnArgs(...)` helper. spawnRun uses the detached variant; tryBinary
+uses the synchronous one.
+
+### Sidebar navigation
+
+Layout now has a 210px left sidebar with:
+
+- Header: AAHP Hub brand block (mono cyan)
+- Nav: `/` Overview, `/metrics`, `/sessions`, `/logs` (with a `// WORK`
+  group separator before metrics, akido-style)
+- Footer: GitHub repo link
+
+The sidebar is a Client Component (`'use client'`) because it uses
+`usePathname()` to highlight the active route. Pre-computed group
+separators avoid a "cannot reassign during render" lint error from
+`react-hooks/immutability`.
+
+### New pages
+
+**`/metrics`** - deeper analytics from the JSONL feed:
+
+- Top totals: runs, success rate, failures, aborted, tokens i/o, cache
+  hit rate
+- 14-day daily activity sparkline (each day color-coded green/red/dim
+  based on success/failure mix; tooltip shows full counts and tokens)
+- By backend: runs, success rate, avg duration, tokens (sortable later)
+- By model: runs, tokens i/o, cache hit rate
+- Top 10 projects by token spend
+- Last 20 failures (with task title, abort vs error distinction, and
+  relative time)
+
+Built on a new `lib/analytics.ts` that re-parses `metrics.jsonl` and
+exposes `BackendBreakdown`, `ModelBreakdown`, `DailyBucket`,
+`ProjectCost`, `RecentFailure`, plus aggregate totals.
+
+**`/sessions`** - dedicated live + recent view:
+
+- Live sessions list: green-bordered cards with task, backend, last
+  log line, abort button per row
+- Recent runs table: last 30 runs from JSONL, with project, task,
+  backend, duration, tokens, status (ok / fail / aborted)
+
+**`/logs`** - placeholder list of `~/.aahp/logs/*` files with name,
+size, mtime. No tail yet (would need an SSE-style log-tail endpoint;
+deferred).
+
+### Verification
+
+- `npm run build` clean (8 routes now: `/`, `/metrics`, `/sessions`,
+  `/logs`, `/_not-found`, `/api/{abort,run,stream}`)
+- `npm run lint` clean
+- `npm test` 51/51 pass
+
+### Open follow-ups
+
+- The metrics page does not yet expose a date-range filter; everything
+  is "all time" plus a fixed 14-day strip. Add a 24h / 7d / 30d / all
+  toggle when there is enough data to make the choice matter.
+- `/logs` only lists; tailing a log live is the natural next step.
+  Either an SSE route that tails the selected file, or just an iframe
+  to the on-disk log via a static-files server. Defer until requested.
+- Sidebar collapse animation (akido has one) is not implemented. The
+  fixed 210px is fine on widescreens; could be improved later.
+- The "more metrics" backlog the user mentioned still has obvious
+  candidates: cost in dollars (needs a model price table), trend per
+  backend over time, retry counts, time-of-day breakdown. None are
+  load-bearing today.
+
+---
+
 ## 2026-04-30: Akido visual language pass (claude-opus-4-7)
 
 User asked to take over the visual style from `akido-mcp`'s Projects page,

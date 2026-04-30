@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Sidebar } from './sidebar';
 
 export const metadata: Metadata = {
   title: 'AAHP Hub',
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-bg text-tx">{children}</body>
+      <body className="min-h-full flex bg-bg text-tx">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0">{children}</div>
+      </body>
     </html>
   );
 }

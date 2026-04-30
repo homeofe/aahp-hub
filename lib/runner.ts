@@ -57,6 +57,24 @@ function spawnArgs(binary: string, argv: string[]): { cmd: string; args: string[
 }
 
 /**
+ * Like spawnArgs, but for long-running detached invocations on Windows the
+ * child .cmd otherwise pops a visible Node console window. Wrapping in
+ * `start /B ""` opens it without a new console.
+ *
+ * The empty `""` after `start` is required: otherwise Windows treats the
+ * next quoted token as the window title and skips it as the executable.
+ */
+function detachedSpawnArgs(binary: string, argv: string[]): { cmd: string; args: string[] } {
+  if (isWindowsBatch(binary)) {
+    return {
+      cmd: 'cmd.exe',
+      args: ['/d', '/s', '/c', 'start', '""', '/B', '/MIN', binary, ...argv],
+    };
+  }
+  return { cmd: binary, args: argv };
+}
+
+/**
  * Walk PATH and return the absolute path to the first matching aahp binary.
  * On Windows we test `aahp.cmd`, `aahp.bat`, `aahp.exe`, `aahp` in that order.
  * Returns null if not found.
@@ -227,7 +245,7 @@ export function spawnRun(args: SpawnRunArgs): SpawnRunResult {
 
   const { argv } = buildArgs(args);
   const logFile = logFileForRunStart();
-  const { cmd, args: spawned } = spawnArgs(status.binary, argv);
+  const { cmd, args: spawned } = detachedSpawnArgs(status.binary, argv);
   try {
     const proc = spawn(cmd, spawned, {
       detached: true,
