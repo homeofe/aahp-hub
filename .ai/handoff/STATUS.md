@@ -97,3 +97,6 @@ auth, no DB, no direct cross-host networking.
 | Local `.env.local` | Created for the user's Windows setup (`C:\Users\root\Workspace` etc.); gitignored |
 | Test coverage | +12 tests for token aggregation, format helpers, controlPort parsing, aborted runs |
 <!-- /SECTION: resolved_this_session -->
+
+<!-- aahp-gate -->
+_AAHP verify gate: v3.0.2 synced 2026-06-20._
