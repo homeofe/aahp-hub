@@ -1,6 +1,6 @@
-# aahp-hub: Current State of the Nation
+﻿# aahp-hub: Current State of the Nation
 
-> Last updated: 2026-04-30 by claude-opus-4-7
+> Last updated: 2026-06-26 by cli-tool
 > Commit: T-004 + T-005 done
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
