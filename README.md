@@ -1,5 +1,8 @@
 # AAHP Hub
 
+[![AAHP Verify](https://github.com/homeofe/aahp-hub/actions/workflows/aahp-verify.yml/badge.svg)](https://github.com/homeofe/aahp-hub/actions/workflows/aahp-verify.yml)
+[![Supply Chain Guard](https://github.com/homeofe/aahp-hub/actions/workflows/supply-chain-guard.yml/badge.svg)](https://github.com/homeofe/aahp-hub/actions/workflows/supply-chain-guard.yml)
+
 Web dashboard for the AAHP runner. Scans your workspace for projects with
 `.ai/handoff/MANIFEST.json` and shows live agent status, active tasks, and
 recent activity in one place.
