@@ -1,44 +1,44 @@
 {
   "aahp_version": "3.0",
-  "project": "repo",
+  "project": "aahp-hub",
   "last_session": {
     "agent": "claude-opus-4-8",
-    "session_id": "cli-1782541068",
-    "timestamp": "2026-06-27T06:17:49Z",
-    "commit": "8656624",
+    "session_id": "cli-1782621574",
+    "timestamp": "2026-06-28T04:39:34Z",
+    "commit": "7d5dc92",
     "phase": "implementation",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:b48b4638f4817a81fc994e0bf962cd865a0f2ee776c04c59a64668a39242b9af",
-      "updated": "2026-06-27T06:17:36Z",
-      "lines": 112,
+      "checksum": "sha256:d5f1cc66b17f312bc21614132a35affda59aabf7cb15b3d78fe9e9dc1448a8e0",
+      "updated": "2026-06-28T04:39:11Z",
+      "lines": 114,
       "summary": "﻿# aahp-hub: Current State of the Nation"
     },
     "NEXT_ACTIONS.md": {
       "checksum": "sha256:3cc5da5e8a98277bda19b17123abe893c5ebc3a5c3246260c41c172cc61667b2",
-      "updated": "2026-06-27T06:16:15Z",
+      "updated": "2026-04-30T14:14:03Z",
       "lines": 41,
       "summary": "(no summary available)"
     },
     "LOG.md": {
       "checksum": "sha256:9bdafc6e5da00ce8e362a526f893dfedaac59f0de785204e3695eed29068cf04",
-      "updated": "2026-06-27T06:16:15Z",
+      "updated": "2026-04-30T15:05:29Z",
       "lines": 729,
       "summary": "(no summary available)"
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",
-      "updated": "2026-06-27T06:16:15Z",
+      "updated": "2026-04-30T13:26:50Z",
       "lines": 112,
       "summary": "(no summary available)"
     }
   },
-  "quick_context": "﻿# aahp-hub: Current State of the Nation (no summary available) ",
+  "quick_context": "Added community health files (LICENSE Apache-2.0, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, .github issue/PR templates) to align aahp-hub with the other AAHP repos.",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 1598,
-    "full_read": 8734
+    "manifest_plus_core": 1633,
+    "full_read": 8769
   }
 }

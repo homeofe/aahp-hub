@@ -1,6 +1,6 @@
 ﻿# aahp-hub: Current State of the Nation
 
-> Last updated: 2026-06-26 by cli-tool
+> Last updated: 2026-06-28 by claude-opus-4-8
 > Commit: T-004 + T-005 done
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
@@ -110,3 +110,5 @@ _AAHP verify gate: v3.0.2 synced 2026-06-20._
 > 2026-06-27 ci: re-pin supply-chain-guard to v5.2.37 (be1d718b17cc38e4bce7fa48579b7112e557943b) and enable Dependabot github-actions weekly updates.
 
 > 2026-06-27 docs(readme): add AAHP Verify + Supply Chain Guard status badges near the top of README.md (only workflows that exist in .github/workflows/).
+
+> 2026-06-28 docs: add community health files (LICENSE Apache-2.0, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, .github issue/PR templates) to align with the other AAHP repos; declare "license": "Apache-2.0" in package.json.
