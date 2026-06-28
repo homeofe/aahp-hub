@@ -1,7 +1,18 @@
 ﻿# aahp-hub: Current State of the Nation
 
 > Last updated: 2026-06-28 by claude-opus-4-8
-> Commit: T-004 + T-005 done
+> Commit: T-004 + T-005 done; access-control hardening (this session)
+>
+> Security hardening (2026-06-28, found by an aahp-swarm review): the mutating
+> routes /api/run (spawns `aahp run`) and /api/abort were unauthenticated, and
+> /api/stream leaked absolute home paths. Added lib/guard.ts `guardMutation`
+> (same-origin/CSRF check + an optional AAHP_HUB_TOKEN shared secret compared via
+> hashed timingSafeEqual) on both POST routes, lib/redact.ts `redactHome` applied
+> to the SSE stream and the /api/run command echo, and bound `next dev`/`next
+> start` to 127.0.0.1. AAHP_HUB_TOKEN is off by default so the bundled UI works
+> token-free locally; set it for headless API clients or shared hosts. Follow-up:
+> the server-rendered pages (sessions/page.tsx, page.tsx) still print absolute
+> paths to the local user (not redacted) - tracked separately.
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
 > It reflects the *current* reality, not history. History lives in LOG.md.
@@ -15,8 +26,10 @@ aahp-hub v0.1.0 - web dashboard for the AAHP runner ecosystem. All five
 formal tasks done. The hub now consumes everything the runner v0.4.0
 exposes: token totals, cache hit rate, aborted-run flag, and the
 `controlPort` for abort. The Abort button proxies through `app/api/abort`
-to the runner's localhost endpoint. The hub stays a thin renderer: no
-auth, no DB, no direct cross-host networking.
+to the runner's localhost endpoint. The hub stays a thin renderer: no DB,
+no direct cross-host networking. Mutating routes are now gated by a
+same-origin check plus an optional shared-secret token, and the server
+binds loopback only.
 <!-- /SECTION: summary -->
 
 ---

@@ -1,4 +1,5 @@
 import { readControlPort } from '@/lib/sessions';
+import { guardMutation } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -18,6 +19,9 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const denied = guardMutation(req);
+  if (denied) return denied;
+
   let body: AbortBody;
   try {
     body = (await req.json()) as AbortBody;

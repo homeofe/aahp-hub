@@ -1,4 +1,6 @@
 import { spawnRun, type SpawnRunArgs } from '@/lib/runner';
+import { guardMutation } from '@/lib/guard';
+import { redactHome } from '@/lib/redact';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -32,6 +34,9 @@ function pickInt(value: unknown): number | undefined {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const denied = guardMutation(req);
+  if (denied) return denied;
+
   let body: RunBody;
   try {
     body = (await req.json()) as RunBody;
@@ -67,14 +72,14 @@ export async function POST(req: Request): Promise<Response> {
     const status = result.error?.includes('not available') ? 503 : 400;
     return jsonResponse(status, {
       error: result.error,
-      command: result.command,
+      command: result.command.map(redactHome),
     });
   }
 
   return jsonResponse(202, {
     started: true,
     pid: result.pid,
-    command: result.command,
+    command: result.command.map(redactHome),
     note: 'aahp run was spawned detached; tail ~/.aahp/logs/ for output and watch sessions.json for live status',
   });
 }

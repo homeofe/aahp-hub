@@ -1,4 +1,5 @@
 import { watchTargets } from '@/lib/sessions';
+import { redactHome } from '@/lib/redact';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -29,7 +30,12 @@ export async function GET(req: Request): Promise<Response> {
       for (const t of initial) {
         lastMtimes.set(t.path, t.mtimeMs);
       }
-      send('hello', { at: new Date().toISOString(), targets: initial });
+      // Emit home-redacted paths so the stream never leaks the OS username or
+      // home-directory layout; the internal Map still keys on the real path.
+      send('hello', {
+        at: new Date().toISOString(),
+        targets: initial.map((t) => ({ ...t, path: redactHome(t.path) })),
+      });
 
       const pollTimer = setInterval(async () => {
         if (closed) return;
@@ -40,7 +46,7 @@ export async function GET(req: Request): Promise<Response> {
             if (prev !== t.mtimeMs) {
               lastMtimes.set(t.path, t.mtimeMs);
               if (prev !== undefined) {
-                send('change', { path: t.path, mtimeMs: t.mtimeMs, at: new Date().toISOString() });
+                send('change', { path: redactHome(t.path), mtimeMs: t.mtimeMs, at: new Date().toISOString() });
               }
             }
           }
