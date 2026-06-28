@@ -10,9 +10,11 @@
 > hashed timingSafeEqual) on both POST routes, lib/redact.ts `redactHome` applied
 > to the SSE stream and the /api/run command echo, and bound `next dev`/`next
 > start` to 127.0.0.1. AAHP_HUB_TOKEN is off by default so the bundled UI works
-> token-free locally; set it for headless API clients or shared hosts. Follow-up:
-> the server-rendered pages (sessions/page.tsx, page.tsx) still print absolute
-> paths to the local user (not redacted) - tracked separately.
+> token-free locally; set it for headless API clients or shared hosts. The
+> server-rendered pages (app/sessions/page.tsx, app/page.tsx) now also apply
+> redactHome at every absolute-path render site (sessionsFile, repoPath, rootDir,
+> metricsFile, error paths, stub-path titles), so the UI no longer prints the home
+> directory or OS username; React keys keep the real path (never emitted to HTML).
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
 > It reflects the *current* reality, not history. History lives in LOG.md.

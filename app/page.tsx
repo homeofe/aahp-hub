@@ -6,6 +6,7 @@ import { AutoRefresh, LiveIndicator, RefreshButton } from './auto-refresh';
 import { ProjectFilter } from './project-filter';
 import { RunButton } from './run-button';
 import { RelativeTime } from './timestamp';
+import { redactHome } from '@/lib/redact';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -520,7 +521,7 @@ function EmptyState({
     <div className="rounded-[var(--r)] border border-br bg-c1 p-8 text-center">
       <h2 className="text-[var(--fs-lg)] font-semibold text-tx mb-2">No projects found</h2>
       <p className="text-dim text-[var(--fs-sm)]">
-        Scanned <code className="font-mono text-cy">{rootDir}</code> but found no{' '}
+        Scanned <code className="font-mono text-cy">{redactHome(rootDir)}</code> but found no{' '}
         <code className="font-mono">.ai/handoff/MANIFEST.json</code> files.
         {hasErrors && ' See errors below.'}
       </p>
@@ -552,7 +553,7 @@ export default async function Page(): Promise<React.ReactElement> {
               {result.rootDir && (
                 <>
                   <span className="text-dim">·</span>
-                  <span className="text-dim font-mono">{result.rootDir}</span>
+                  <span className="text-dim font-mono">{redactHome(result.rootDir)}</span>
                 </>
               )}
             </p>
@@ -606,7 +607,7 @@ export default async function Page(): Promise<React.ReactElement> {
                   key={e.path}
                   className="rounded-[var(--r)] border border-[rgba(255,64,96,0.4)] bg-[var(--er-soft)] p-3"
                 >
-                  <p className="font-mono text-sec truncate">{e.path}</p>
+                  <p className="font-mono text-sec truncate">{redactHome(e.path)}</p>
                   <p className="text-er mt-1">{e.message}</p>
                 </li>
               ))}
@@ -619,7 +620,7 @@ export default async function Page(): Promise<React.ReactElement> {
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span>{result.projects.length} projects</span>
               {result.stubs.length > 0 && (
-                <span title={result.stubs.map((s) => s.path).join('\n')}>
+                <span title={result.stubs.map((s) => redactHome(s.path)).join('\n')}>
                   {result.stubs.length} stub{result.stubs.length === 1 ? '' : 's'} hidden
                 </span>
               )}
@@ -670,13 +671,13 @@ export default async function Page(): Promise<React.ReactElement> {
                     </span>
                   </span>
                 )}
-                <span className="text-dim font-mono">{result.metricsFile}</span>
+                <span className="text-dim font-mono">{redactHome(result.metricsFile)}</span>
               </>
             ) : result.metricsError ? (
               <span className="text-er">metrics: {result.metricsError}</span>
             ) : (
               <span>
-                metrics: no <span className="font-mono">{result.metricsFile}</span> yet
+                metrics: no <span className="font-mono">{redactHome(result.metricsFile)}</span> yet
               </span>
             )}
           </div>
@@ -686,11 +687,11 @@ export default async function Page(): Promise<React.ReactElement> {
             ) : result.sessionsAvailable ? (
               <span>
                 sessions: <span className="text-sec">{result.activeSessions.length} active</span>
-                <span className="text-dim font-mono"> {result.sessionsFile}</span>
+                <span className="text-dim font-mono"> {redactHome(result.sessionsFile)}</span>
               </span>
             ) : (
               <span>
-                sessions: no <span className="font-mono">{result.sessionsFile}</span> yet
+                sessions: no <span className="font-mono">{redactHome(result.sessionsFile)}</span> yet
               </span>
             )}
             <span>

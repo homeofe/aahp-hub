@@ -4,6 +4,7 @@ import { loadSessions } from '@/lib/sessions';
 import { AbortButton } from '../abort-button';
 import { AutoRefresh, RefreshButton } from '../auto-refresh';
 import { RelativeTime } from '../timestamp';
+import { redactHome } from '@/lib/redact';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -29,7 +30,7 @@ export default async function SessionsPage(): Promise<React.ReactElement> {
             </h1>
             <h2 className="text-2xl font-bold text-tx">Live and recent agents</h2>
             <p className="text-[var(--fs-xs)] text-dim mt-1 font-mono">
-              {sessionsRes.sessionsFile}
+              {redactHome(sessionsRes.sessionsFile)}
               {sessionsRes.controlPort && (
                 <>
                   {' '}
@@ -85,9 +86,9 @@ export default async function SessionsPage(): Promise<React.ReactElement> {
                     )}
                     <p
                       className="font-mono text-dim text-[var(--fs-micro)] mt-1 truncate"
-                      title={s.repoPath}
+                      title={redactHome(s.repoPath)}
                     >
-                      {s.repoPath}
+                      {redactHome(s.repoPath)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
