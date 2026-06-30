@@ -3,17 +3,17 @@
   "project": "aahp-hub",
   "last_session": {
     "agent": "claude-opus-4-8",
-    "session_id": "cli-1782643061",
-    "timestamp": "2026-06-28T10:37:41Z",
-    "commit": "7f92e33",
+    "session_id": "cli-1782809212",
+    "timestamp": "2026-06-30T08:47:01Z",
+    "commit": "56ed4c2",
     "phase": "fix",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:04d76e56ccf4272d4fee713057148777b80128cafa32ccd25d2706b538083525",
-      "updated": "2026-06-28T10:37:31Z",
-      "lines": 129,
+      "checksum": "sha256:6abbd85adad5fd2891b681e70b75b5cb46693b874e74d46d76483c913b4fc0d6",
+      "updated": "2026-06-30T08:34:20Z",
+      "lines": 131,
       "summary": "﻿# aahp-hub: Current State of the Nation"
     },
     "NEXT_ACTIONS.md": {
@@ -33,12 +33,18 @@
       "updated": "2026-04-30T13:26:50Z",
       "lines": 112,
       "summary": "(no summary available)"
+    },
+    "pii-allowlist.json": {
+      "checksum": "sha256:7c1051f6e2bc3943b7c1dbe4da229694455681b8875a346c99279e555edb733f",
+      "updated": "2026-06-30T08:33:49Z",
+      "lines": 4,
+      "summary": "{"
     }
   },
   "quick_context": "﻿# aahp-hub: Current State of the Nation (no summary available) ",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 1845,
-    "full_read": 8981
+    "manifest_plus_core": 1862,
+    "full_read": 9006
   }
 }

@@ -127,3 +127,5 @@ _AAHP verify gate: v3.0.2 synced 2026-06-20._
 > 2026-06-27 docs(readme): add AAHP Verify + Supply Chain Guard status badges near the top of README.md (only workflows that exist in .github/workflows/).
 
 > 2026-06-28 docs: add community health files (LICENSE Apache-2.0, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, .github issue/PR templates) to align with the other AAHP repos; declare "license": "Apache-2.0" in package.json.
+
+> 2026-06-30 feat(verify): added reviewed expiring PII allowlist, rolled out from AAHP v3.2.0.
