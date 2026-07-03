@@ -132,3 +132,4 @@ _AAHP verify gate: v3.0.2 synced 2026-06-20._
 
 > 2026-06-30 ci: exempt Dependabot from the aahp-verify handoff gate (keep supply-chain-guard/codeql/build).
 - 2026-07-03: ci: supply-chain-guard now tracks the moving @v5 release branch instead of a stale SHA pin (owner rule: consumers pin @v5, the release workflow moves it - currently v5.6.1). Ends the recurring stale/broken-pin churn (v5.2.35 crash wave). Config change only.
+- 2026-07-03: security: cleared all open GitHub Dependabot alerts for this repo (dependency range raises + exact-range lockfile overrides for transitives; no forced majors beyond what the advisories require). Verified locally: package-manager audit reports 0 open advisories, build and tests green. Estate-wide burn-down, executed by a per-repo agent + centrally reviewed and committed.

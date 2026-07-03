@@ -3,17 +3,17 @@
   "project": "aahp-hub",
   "last_session": {
     "agent": "claude-fable-5",
-    "session_id": "cli-1783072024",
-    "timestamp": "2026-07-03T09:47:04Z",
-    "commit": "41d5af6",
+    "session_id": "cli-1783074042",
+    "timestamp": "2026-07-03T10:20:43Z",
+    "commit": "b70595d",
     "phase": "fix",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:a85b7d9fae17bdefb5154660d69510a15400e8f0c0f2b7e29f5a888988587dea",
-      "updated": "2026-07-03T09:47:04Z",
-      "lines": 134,
+      "checksum": "sha256:f726ab976675cf620acf1f68059692f4ec7fc48f61cd383c9c8dafedf69e7606",
+      "updated": "2026-07-03T10:20:42Z",
+      "lines": 135,
       "summary": "﻿# aahp-hub: Current State of the Nation"
     },
     "NEXT_ACTIONS.md": {
@@ -44,7 +44,7 @@
   "quick_context": "﻿# aahp-hub: Current State of the Nation (no summary available) ",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 1931,
-    "full_read": 9075
+    "manifest_plus_core": 2000,
+    "full_read": 9144
   }
 }
