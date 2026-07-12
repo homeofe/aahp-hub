@@ -1,5 +1,7 @@
 ﻿# aahp-hub: Current State of the Nation
 
+> Note (2026-07-12, claude-opus-4-8): synced canonical AAHP gate scripts from homeofe/improvements (adds the realpath-relative PII validator invocation that fixes the Windows/MSYS artifact; AAHP_HANDOFF_FILES preserved).
+
 > Last updated: 2026-06-28 by claude-opus-4-8
 > Commit: T-004 + T-005 done; access-control hardening (this session)
 >
