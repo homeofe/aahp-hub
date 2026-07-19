@@ -3,70 +3,70 @@
   "project": "aahp-hub",
   "last_session": {
     "agent": "cli-tool",
-    "session_id": "cli-1784444103",
-    "timestamp": "2026-07-19T06:55:03Z",
-    "commit": "d0614b4",
+    "session_id": "cli-1784449515",
+    "timestamp": "2026-07-19T08:25:15Z",
+    "commit": "7536942",
     "phase": "idle",
     "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:98de597d2fc8cfd63dd9f90d0c07bb64546b1de8d5d5e871907e982aaaaac073",
-      "updated": "2026-07-19T06:54:52Z",
-      "lines": 145,
+      "checksum": "sha256:2f653b0379b36df61da56660166a170a058a7a016426191522f83a2296f56452",
+      "updated": "2026-07-19T08:25:11Z",
+      "lines": 147,
       "summary": "(no summary available)"
     },
     "NEXT_ACTIONS.md": {
       "checksum": "sha256:3cc5da5e8a98277bda19b17123abe893c5ebc3a5c3246260c41c172cc61667b2",
-      "updated": "2026-07-19T06:51:44Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 41,
       "summary": "(no summary available)"
     },
     "LOG.md": {
       "checksum": "sha256:9bdafc6e5da00ce8e362a526f893dfedaac59f0de785204e3695eed29068cf04",
-      "updated": "2026-07-19T06:51:44Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 729,
       "summary": "(no summary available)"
     },
     "LOG-ARCHIVE.md": {
       "checksum": "sha256:b1f75cf29efe8c61000fdd1822dfcbc71c7ee4f75a17f95281d55f6e414a1eb0",
-      "updated": "2026-07-19T06:52:02Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 10,
       "summary": "(no summary available)"
     },
     "DASHBOARD.md": {
       "checksum": "sha256:b0782b2c35fd8ccda7057e0151bdc3239732117fa05cd83a2dd01600a65fa98f",
-      "updated": "2026-07-19T06:52:02Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 74,
       "summary": "(no summary available)"
     },
     "TRUST.md": {
       "checksum": "sha256:141b2c23c467b59a90acdcdf6faf7518852994e9581648578e083801a004910a",
-      "updated": "2026-07-19T06:52:02Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 84,
       "summary": "(no summary available)"
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",
-      "updated": "2026-07-19T06:51:44Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 112,
       "summary": "(no summary available)"
     },
     "WORKFLOW.md": {
       "checksum": "sha256:71746fcb7ba4885e85bf37302840ea9402eb1d04b662274611f862c429fde74d",
-      "updated": "2026-07-19T06:52:02Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 167,
       "summary": "(no summary available)"
     },
     "GROUNDING.md": {
       "checksum": "sha256:7ef8cece585dc5defb4285175b9ba560d5469675df553d4ce28ec9e7aec24343",
-      "updated": "2026-07-19T06:52:02Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 209,
       "summary": "(no summary available)"
     },
     "pii-allowlist.json": {
       "checksum": "sha256:7c1051f6e2bc3943b7c1dbe4da229694455681b8875a346c99279e555edb733f",
-      "updated": "2026-07-19T06:51:44Z",
+      "updated": "2026-07-19T08:24:47Z",
       "lines": 4,
       "summary": "{"
     }
@@ -74,7 +74,7 @@
   "quick_context": "(no summary available) (no summary available) ",
   "token_budget": {
     "manifest_only": 85,
-    "manifest_plus_core": 2360,
-    "full_read": 13751
+    "manifest_plus_core": 2407,
+    "full_read": 13798
   }
 }
