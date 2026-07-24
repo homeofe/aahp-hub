@@ -97,38 +97,54 @@ export function MorningBriefing({
         <div className="mt-4 space-y-4">
           {/* Quick Metrics Ticker */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-[var(--fs-xs)]">
-            <div className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5">
-              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1">
-                LIVE AGENTS
+            <Link
+              href="/?filter=running"
+              className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5 hover:border-[var(--ok)] hover:bg-[var(--c2)] transition-all group cursor-pointer text-left block"
+              title="Click to filter dashboard to running agents"
+            >
+              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1 group-hover:text-ok">
+                LIVE AGENTS ↗
               </span>
               <span
                 className={`text-base font-bold ${runningCount > 0 ? 'text-ok animate-pulse' : 'text-tx'}`}
               >
                 {runningCount} {runningCount === 1 ? 'Agent' : 'Agents'} Running
               </span>
-            </div>
+            </Link>
 
-            <div className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5">
-              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1">
-                READY TASKS
+            <Link
+              href="/?filter=ready"
+              className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5 hover:border-[var(--cy)] hover:bg-[var(--c2)] transition-all group cursor-pointer text-left block"
+              title="Click to filter dashboard to ready tasks"
+            >
+              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1 group-hover:text-cy">
+                READY TASKS ↗
               </span>
               <span className="text-base font-bold text-cy">
                 {totalReady} Tasks Ready
               </span>
-            </div>
+            </Link>
 
-            <div className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5">
-              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1">
-                ESTATE REPOS
+            <Link
+              href="/"
+              className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5 hover:border-tx hover:bg-[var(--c2)] transition-all group cursor-pointer text-left block"
+              title="Click to show all repositories"
+            >
+              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1 group-hover:text-tx">
+                ESTATE REPOS ↗
               </span>
               <span className="text-base font-bold text-tx">
                 {totalProjects} Repos Scanned
               </span>
-            </div>
+            </Link>
 
-            <div className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5">
-              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1">
-                PASS RATE / TOKENS
+            <Link
+              href="/metrics"
+              className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-3.5 py-2.5 hover:border-[var(--ok)] hover:bg-[var(--c2)] transition-all group cursor-pointer text-left block"
+              title="Click to view detailed metrics & token spend"
+            >
+              <span className="text-dim text-[10px] uppercase block tracking-wider mb-1 group-hover:text-ok">
+                PASS RATE / TOKENS ↗
               </span>
               <span className="text-base font-bold text-ok">
                 {totals ? `${totals.successRate}%` : '100%'}
@@ -138,7 +154,7 @@ export function MorningBriefing({
                   </span>
                 )}
               </span>
-            </div>
+            </Link>
           </div>
 
           {/* Action Row & Top Priority Tasks */}

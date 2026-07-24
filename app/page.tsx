@@ -9,6 +9,8 @@ import { ProjectFilter } from './project-filter';
 import { RunButton } from './run-button';
 import { RelativeTime } from './timestamp';
 import { redactHome } from '@/lib/redact';
+import { loadToolingStatus } from '@/lib/tooling';
+import { ToolingPanel } from './tooling-panel';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -541,6 +543,7 @@ function EmptyState({
 
 export default async function Page(): Promise<React.ReactElement> {
   const result = await scanProjects();
+  const tooling = await loadToolingStatus();
   const totalReady = result.projects.reduce((s, p) => s + p.readyTasks, 0);
   const totalInProgress = result.projects.reduce((s, p) => s + p.inProgressTasks, 0);
   const totalDone = result.projects.reduce((s, p) => s + p.doneTasks, 0);
@@ -564,7 +567,7 @@ export default async function Page(): Promise<React.ReactElement> {
   return (
     <>
       <AutoRefresh />
-      <main className="flex-1 w-full mx-auto px-6 py-5 2xl:px-10">
+      <main className="flex-1 w-full mx-auto px-6 py-5 2xl:px-10 space-y-4">
         <header className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-br">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-tx" style={{ fontFamily: 'var(--font-mono)' }}>
@@ -601,6 +604,8 @@ export default async function Page(): Promise<React.ReactElement> {
           totals={result.totals}
           topReadyTasks={topReadyTasks}
         />
+
+        <ToolingPanel tooling={tooling} />
 
         <ControlCenter
           runner={result.runner}
