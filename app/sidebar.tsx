@@ -54,7 +54,7 @@ export function Sidebar(): React.ReactElement {
               className="text-[var(--fs-base)] font-bold tracking-wide text-tx"
               style={{ fontFamily: 'var(--font-mono)' }}
             >
-              <span className="text-cy">ELVATIS</span> Hub
+              <span className="text-cy">AAHP</span> Hub
             </h1>
           </div>
           <p className="text-[9px] text-dim mt-1 font-mono uppercase tracking-widest leading-tight">
@@ -90,7 +90,7 @@ export function Sidebar(): React.ReactElement {
 
       <div className="px-4 py-3 border-t border-br text-[9px] font-mono text-dim space-y-1">
         <div className="flex items-center justify-between text-sec">
-          <span>ELVATIS GROUP</span>
+          <span>AAHP Hub</span>
           <span className="text-cy">v3.8.1</span>
         </div>
         <a

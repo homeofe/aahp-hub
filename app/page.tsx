@@ -560,7 +560,7 @@ export default async function Page(): Promise<React.ReactElement> {
         <header className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-br">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-tx" style={{ fontFamily: 'var(--font-mono)' }}>
-              <span className="text-cy">ELVATIS</span> Executive Hub
+              <span className="text-cy">AAHP</span> Hub
             </h1>
             <p className="text-[var(--fs-xs)] text-dim mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
               <LiveIndicator />
