@@ -8,6 +8,7 @@ import { redactHome } from '@/lib/redact';
 import { AbortButton } from '../../abort-button';
 import { AutoRefresh, LiveIndicator } from '../../auto-refresh';
 import { HealthBadge } from '../../health-badge';
+import { ProjectSectionNav } from '../../project-section-nav';
 import { RelativeTime } from '../../timestamp';
 import { RunButton } from '../../run-button';
 import { Sparkline } from '../../sparkline';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 function progressPercent(project: ProjectSummary): number {
-  return project.totalTasks > 0 ? Math.round((project.doneTasks / project.totalTasks) * 100) : 0;
+  return project.totalTasks > 0 ? Math.round((project.doneTasks / project.totalTasks) * 100) : 100;
 }
 
 function toneForStatus(status: string): string {
@@ -29,7 +30,7 @@ function toneForStatus(status: string): string {
 
 function MetricCard({ label, value, note, tone = 'text-tx' }: { label: string; value: string; note: string; tone?: string }): React.ReactElement {
   return (
-    <div className="rounded-[var(--r)] border border-br bg-[var(--c1)] p-4">
+    <div className="group rounded-[var(--r)] border border-br bg-[linear-gradient(145deg,rgba(14,23,56,0.96),rgba(19,31,74,0.54))] p-4 transition hover:-translate-y-0.5 hover:border-[rgba(0,180,216,0.36)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
       <div className="font-mono text-[9px] uppercase tracking-wider text-dim">{label}</div>
       <div className={`mt-1 font-mono text-xl font-bold ${tone}`}>{value}</div>
       <div className="mt-1 text-[var(--fs-xs)] text-dim">{note}</div>
@@ -39,10 +40,15 @@ function MetricCard({ label, value, note, tone = 'text-tx' }: { label: string; v
 
 function Section({ id, title, eyebrow, children }: { id: string; title: string; eyebrow: string; children: React.ReactNode }): React.ReactElement {
   return (
-    <section id={id} className="scroll-mt-5 rounded-[var(--r-lg)] border border-br bg-[rgba(14,23,56,0.78)] p-5">
-      <div className="mb-4">
-        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-cy">{eyebrow}</div>
-        <h2 className="mt-1 text-base font-semibold text-tx">{title}</h2>
+    <section id={id} className="scroll-mt-20 rounded-[var(--r-lg)] border border-br bg-[linear-gradient(145deg,rgba(14,23,56,0.88),rgba(9,17,43,0.78))] p-5 shadow-[0_14px_40px_rgba(0,0,0,0.16)]">
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-cy">{eyebrow}</div>
+          <h2 className="mt-1 text-base font-semibold text-tx">{title}</h2>
+        </div>
+        <a href="#overview" className="font-mono text-[9px] text-dim transition hover:text-cy" aria-label={`Back to project overview from ${title}`}>
+          {'\u2191'} top
+        </a>
       </div>
       {children}
     </section>
@@ -125,115 +131,152 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
           </div>
         </header>
 
-        <nav className="sticky top-0 z-20 my-4 flex gap-1 overflow-x-auto rounded-[var(--r)] border border-br bg-[rgba(7,12,30,0.92)] p-1.5 backdrop-blur-md" aria-label="Project sections">
-          {[
-            ['overview', 'Overview'], ['tasks', 'Tasks'], ['activity', 'Activity'],
-            ['health', 'Health'], ['context', 'Context'], ['controls', 'Controls'],
-          ].map(([href, label]) => (
-            <a key={href} href={`#${href}`} className="shrink-0 rounded px-3 py-1.5 font-mono text-[var(--fs-xs)] text-sec hover:bg-[var(--c2)] hover:text-cy">{label}</a>
-          ))}
-        </nav>
+        <ProjectSectionNav />
 
-        <div id="overview" className="scroll-mt-20 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard label="Tasks" value={`${project.doneTasks}/${project.totalTasks}`} note={project.totalTasks === 0 ? 'No formal tasks in current handoff' : `${project.readyTasks} ready / ${project.inProgressTasks} active`} tone="text-cy" />
-          <MetricCard label="Health" value={`${health.score}/100`} note={`Grade ${health.grade}`} tone={health.score >= 75 ? 'text-ok' : health.score >= 50 ? 'text-warn' : 'text-er'} />
-          <MetricCard label="Success" value={metrics ? `${metrics.successRate}%` : '-'} note={metrics ? `${metrics.totalRuns} recorded runs` : 'No runner metrics'} tone={metrics && metrics.successRate >= 80 ? 'text-ok' : 'text-warn'} />
-          <MetricCard label="Average run" value={metrics ? formatDuration(metrics.avgDurationMs) : '-'} note={metrics ? `${metrics.runs7d} runs in 7 days` : 'No runner metrics'} />
-        </div>
+        <section id="overview" className="scroll-mt-20">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-cy">Project snapshot</div>
+              <h2 className="mt-1 text-base font-semibold text-tx">What matters right now</h2>
+            </div>
+            <span className="font-mono text-[10px] text-dim">Live handoff and runner state</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <MetricCard label="Tasks" value={`${project.doneTasks}/${project.totalTasks}`} note={project.totalTasks === 0 ? 'No formal tasks in current handoff' : `${project.readyTasks} ready / ${project.inProgressTasks} active`} tone="text-cy" />
+            <MetricCard label="Health" value={`${health.score}/100`} note={`Grade ${health.grade}`} tone={health.score >= 75 ? 'text-ok' : health.score >= 50 ? 'text-warn' : 'text-er'} />
+            <MetricCard label="Success" value={metrics ? `${metrics.successRate}%` : '-'} note={metrics ? `${metrics.totalRuns} recorded runs` : 'No runner metrics'} tone={metrics && metrics.successRate >= 80 ? 'text-ok' : 'text-warn'} />
+            <MetricCard label="Average run" value={metrics ? formatDuration(metrics.avgDurationMs) : '-'} note={metrics ? `${metrics.runs7d} runs in 7 days` : 'No runner metrics'} />
+          </div>
+        </section>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(310px,0.8fr)]">
-          <div className="space-y-4">
-            <Section id="tasks" eyebrow="Execution queue" title={`Tasks (${project.tasks.length})`}>
-              {project.tasks.length === 0 ? (
-                <p className="text-sm text-dim">No formal tasks are currently recorded. This usually means the roadmap is complete or future work has not been promoted to formal tasks.</p>
-              ) : (
-                <div className="overflow-hidden rounded-[var(--r)] border border-br">
-                  {project.tasks.map((task) => (
-                    <div key={task.id} className="grid gap-2 border-b border-br px-3 py-3 last:border-0 sm:grid-cols-[5rem_7rem_minmax(0,1fr)_auto] sm:items-center">
-                      <span className="font-mono text-[var(--fs-xs)] text-dim">{task.id}</span>
-                      <span className={`w-fit rounded border px-2 py-0.5 font-mono text-[9px] uppercase ${toneForStatus(task.status)}`}>{task.status.replaceAll('_', ' ')}</span>
-                      <div className="min-w-0">
-                        <div className="break-words text-sm text-tx">{task.title || 'Untitled task'}</div>
-                        {(task.priority || task.dependsOn?.length) && (
-                          <div className="mt-1 font-mono text-[9px] text-dim">
-                            {task.priority && <span>priority: {task.priority}</span>}
-                            {task.priority && task.dependsOn?.length ? <span> / </span> : null}
-                            {task.dependsOn?.length ? <span>depends on: {task.dependsOn.join(', ')}</span> : null}
-                          </div>
-                        )}
-                      </div>
-                      {github && task.githubIssue && (
-                        <a href={`${github.issues}/${task.githubIssue}`} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] text-cy hover:underline">issue #{task.githubIssue} {'\u2197'}</a>
+        <div className="mt-4 space-y-4">
+          <Section id="tasks" eyebrow="Execution queue" title={`Tasks (${project.tasks.length})`}>
+            {project.tasks.length === 0 ? (
+              <p className="text-sm text-dim">No formal tasks are currently recorded. This usually means the roadmap is complete or future work has not been promoted to formal tasks.</p>
+            ) : (
+              <div className="overflow-hidden rounded-[var(--r)] border border-br">
+                {project.tasks.map((task) => (
+                  <div key={task.id} className="grid gap-2 border-b border-br px-3 py-3 last:border-0 sm:grid-cols-[5rem_7rem_minmax(0,1fr)_auto] sm:items-center">
+                    <span className="font-mono text-[var(--fs-xs)] text-dim">{task.id}</span>
+                    <span className={`w-fit rounded border px-2 py-0.5 font-mono text-[9px] uppercase ${toneForStatus(task.status)}`}>{task.status.replaceAll('_', ' ')}</span>
+                    <div className="min-w-0">
+                      <div className="break-words text-sm text-tx">{task.title || 'Untitled task'}</div>
+                      {(task.priority || task.dependsOn?.length) && (
+                        <div className="mt-1 font-mono text-[9px] text-dim">
+                          {task.priority && <span>priority: {task.priority}</span>}
+                          {task.priority && task.dependsOn?.length ? <span> / </span> : null}
+                          {task.dependsOn?.length ? <span>depends on: {task.dependsOn.join(', ')}</span> : null}
+                        </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <Section id="activity" eyebrow="Runner history" title="Recent activity">
-              {!metrics || metrics.recentEvents.length === 0 ? (
-                <p className="text-sm text-dim">No recent runner events have been recorded for this project.</p>
-              ) : (
-                <div className="space-y-2">
-                  {metrics.recentEvents.map((event, index) => (
-                    <div key={`${event.timestamp}-${event.taskId}-${index}`} className="flex items-start gap-3 rounded-[var(--r)] border border-br bg-[var(--c2)]/45 p-3">
-                      <span className={event.aborted ? 'text-warn' : event.success ? 'text-ok' : 'text-er'}>{event.aborted ? '\u00D7' : event.success ? '\u2713' : '\u2717'}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="break-words text-sm text-tx">{event.taskTitle || event.taskId || 'Runner event'}</div>
-                        <div className="mt-1 flex flex-wrap gap-2 font-mono text-[9px] text-dim"><span>{event.backend}</span><span>/</span><span>{event.timestamp ? <RelativeTime iso={event.timestamp} /> : 'unknown time'}</span></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <Section id="context" eyebrow="Handoff context" title="Project context">
-              <p className="whitespace-pre-wrap break-words text-sm leading-6 text-sec">{project.quickContext || 'No quick context is available.'}</p>
-            </Section>
-          </div>
-
-          <aside className="space-y-4">
-            <Section id="health" eyebrow="Quality signals" title="Health breakdown">
-              <div className="space-y-3">
-                {health.factors.map((factor) => (
-                  <div key={factor.name}>
-                    <div className="mb-1 flex items-center justify-between gap-3 font-mono text-[10px]"><span className="text-sec">{factor.name}</span><span className="text-dim">{factor.score}%</span></div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--c2)]"><div className="h-full rounded-full" style={{ width: `${factor.score}%`, backgroundColor: factor.score >= 75 ? 'var(--ok)' : factor.score >= 50 ? 'var(--warn)' : 'var(--er)' }} /></div>
-                    <div className="mt-1 text-[10px] text-dim">{factor.detail}</div>
+                    {github && task.githubIssue && (
+                      <a href={`${github.issues}/${task.githubIssue}`} target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] text-cy hover:underline">issue #{task.githubIssue} {'\u2197'}</a>
+                    )}
                   </div>
                 ))}
               </div>
-            </Section>
+            )}
+          </Section>
 
-            <Section id="controls" eyebrow="Project control" title="Runner controls">
-              <div className="space-y-3">
-                <RunButton project={project.name} label={'\u25B6 Start project run'} variant="primary" disabled={!canRun} disabledReason={runDisabledReason} />
-                <RunButton project={project.name} dryRun label="Dry run" disabled={!scan.runner.available || isRunning} disabledReason={!scan.runner.available ? 'aahp is not available' : 'An agent is already running'} />
+          <Section id="activity" eyebrow="Runner history" title="Recent activity">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)]">
+              <div>
+                {!metrics || metrics.recentEvents.length === 0 ? (
+                  <p className="text-sm text-dim">No recent runner events have been recorded for this project.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {metrics.recentEvents.map((event, index) => (
+                      <div key={`${event.timestamp}-${event.taskId}-${index}`} className="flex items-start gap-3 rounded-[var(--r)] border border-br bg-[var(--c2)]/45 p-3">
+                        <span className={event.aborted ? 'text-warn' : event.success ? 'text-ok' : 'text-er'}>{event.aborted ? '\u00D7' : event.success ? '\u2713' : '\u2717'}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="break-words text-sm text-tx">{event.taskTitle || event.taskId || 'Runner event'}</div>
+                          <div className="mt-1 flex flex-wrap gap-2 font-mono text-[9px] text-dim"><span>{event.backend}</span><span>/</span><span>{event.timestamp ? <RelativeTime iso={event.timestamp} /> : 'unknown time'}</span></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-[var(--r)] border border-br bg-[var(--c2)]/35 p-4">
+                <div className="font-mono text-[9px] uppercase tracking-wider text-dim">Operational details</div>
+                <dl className="mt-3 space-y-2 text-[var(--fs-xs)]">
+                  <div className="flex justify-between gap-4"><dt className="text-dim">Runs (24h / 7d)</dt><dd className="font-mono text-sec">{metrics ? `${metrics.runs24h} / ${metrics.runs7d}` : '-'}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-dim">Average turns</dt><dd className="font-mono text-sec">{metrics ? metrics.avgTurns.toFixed(1) : '-'}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-dim">Aborted runs</dt><dd className="font-mono text-sec">{metrics ? metrics.abortedRuns : '-'}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-dim">Tokens in / out</dt><dd className="font-mono text-sec">{metrics && metrics.tokens.recordedRuns > 0 ? `${formatTokens(metrics.tokens.inputTokens)} / ${formatTokens(metrics.tokens.outputTokens)}` : '-'}</dd></div>
+                  <div className="flex justify-between gap-4"><dt className="text-dim">Cache hit rate</dt><dd className="font-mono text-sec">{metrics && metrics.tokens.recordedRuns > 0 ? `${metrics.tokens.cacheHitRate}%` : '-'}</dd></div>
+                </dl>
+                {metrics && metrics.dailyRuns.length >= 2 && <div className="mt-4"><Sparkline data={metrics.dailyRuns} width={260} height={46} /></div>}
+              </div>
+            </div>
+          </Section>
+
+          <Section id="health" eyebrow="Quality signals" title="Health breakdown">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {health.factors.map((factor) => (
+                <div key={factor.name} className="rounded-[var(--r)] border border-br bg-[var(--c2)]/35 p-3">
+                  <div className="mb-1 flex items-center justify-between gap-3 font-mono text-[10px]"><span className="text-sec">{factor.name}</span><span className="text-dim">{factor.score}%</span></div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[var(--c2)]"><div className="h-full rounded-full" style={{ width: `${factor.score}%`, backgroundColor: factor.score >= 75 ? 'var(--ok)' : factor.score >= 50 ? 'var(--warn)' : 'var(--er)' }} /></div>
+                  <div className="mt-2 text-[10px] text-dim">{factor.detail}</div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section id="context" eyebrow="Handoff context" title="Project context">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+              <p className="whitespace-pre-wrap break-words text-sm leading-7 text-sec">{project.quickContext || 'No quick context is available.'}</p>
+              <dl className="rounded-[var(--r)] border border-br bg-[var(--c2)]/35 p-4 text-[var(--fs-xs)]">
+                <div className="mb-3 font-mono text-[9px] uppercase tracking-wider text-dim">Source details</div>
+                <div className="mb-2 flex justify-between gap-4"><dt className="text-dim">Agent</dt><dd className="font-mono text-sec">{project.lastAgent}</dd></div>
+                <div className="mb-2 flex justify-between gap-4"><dt className="text-dim">Phase</dt><dd className="font-mono text-sec">{project.phase}</dd></div>
+                <div className="mb-2 flex justify-between gap-4"><dt className="text-dim">Context source</dt><dd className="font-mono text-sec">{project.quickContextSource === 'status' ? 'STATUS.md' : project.quickContextSource}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-dim">Project path</dt><dd className="break-all text-right font-mono text-sec">{redactHome(project.path)}</dd></div>
+                {project.worktreeCount > 1 && (
+                  <details className="mt-3 border-t border-br pt-3">
+                    <summary className="cursor-pointer font-mono text-[10px] text-cy">{project.worktreeCount - 1} alternate worktree{project.worktreeCount > 2 ? 's' : ''}</summary>
+                    <ul className="mt-2 space-y-1">
+                      {project.alternatePaths.map((path) => <li key={path} className="break-all font-mono text-[9px] text-dim">{redactHome(path)}</li>)}
+                    </ul>
+                  </details>
+                )}
+              </dl>
+            </div>
+          </Section>
+
+          <Section id="controls" eyebrow="Project control" title="Runner controls">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.55fr)]">
+              <div>
+                <div className="flex flex-wrap gap-2">
+                  <RunButton project={project.name} label={'\u25B6 Start project run'} variant="primary" disabled={!canRun} disabledReason={runDisabledReason} />
+                  <RunButton project={project.name} dryRun label="Dry run" disabled={!scan.runner.available || isRunning} disabledReason={!scan.runner.available ? 'aahp is not available' : 'An agent is already running'} />
+                </div>
                 {project.activeSessions.map((session) => (
-                  <div key={`${session.repoName}-${session.taskId}`} className="rounded-[var(--r)] border border-[rgba(14,169,125,0.3)] bg-[var(--ok-soft)] p-3">
+                  <div key={`${session.repoName}-${session.taskId}`} className="mt-3 rounded-[var(--r)] border border-[rgba(14,169,125,0.3)] bg-[var(--ok-soft)] p-3">
                     <div className="font-mono text-[10px] text-ok">{session.taskId} / {session.backend}</div>
                     <p className="mt-1 break-words text-[var(--fs-xs)] text-sec">{session.taskTitle || session.lastLine || 'Active agent'}</p>
                     <div className="mt-3"><AbortButton repoName={session.repoName} taskId={session.taskId} disabled={scan.controlPort === null} disabledReason="Runner control port is unavailable" /></div>
                   </div>
                 ))}
-                {!isRunning && <p className="text-[var(--fs-xs)] text-dim">No agent is currently running for this project.</p>}
+                {!isRunning && <p className="mt-3 text-[var(--fs-xs)] text-dim">No agent is currently running for this project.</p>}
               </div>
-            </Section>
+              <div className="rounded-[var(--r)] border border-br bg-[var(--c2)]/35 p-4">
+                <div className="font-mono text-[9px] uppercase tracking-wider text-dim">Control readiness</div>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${scan.runner.available ? 'bg-ok' : 'bg-er'}`} aria-hidden />
+                  <span className="text-sm text-sec">{scan.runner.available ? 'Runner available' : 'Runner unavailable'}</span>
+                </div>
+                <p className="mt-2 text-[var(--fs-xs)] leading-5 text-dim">{canRun ? 'This project has actionable work and can start now.' : runDisabledReason}</p>
+              </div>
+            </div>
+          </Section>
 
-            <Section id="metadata" eyebrow="Metrics detail" title="Operational details">
-              <dl className="space-y-2 text-[var(--fs-xs)]">
-                <div className="flex justify-between gap-4"><dt className="text-dim">Runs (24h / 7d)</dt><dd className="font-mono text-sec">{metrics ? `${metrics.runs24h} / ${metrics.runs7d}` : '-'}</dd></div>
-                <div className="flex justify-between gap-4"><dt className="text-dim">Average turns</dt><dd className="font-mono text-sec">{metrics ? metrics.avgTurns.toFixed(1) : '-'}</dd></div>
-                <div className="flex justify-between gap-4"><dt className="text-dim">Aborted runs</dt><dd className="font-mono text-sec">{metrics ? metrics.abortedRuns : '-'}</dd></div>
-                <div className="flex justify-between gap-4"><dt className="text-dim">Tokens in / out</dt><dd className="font-mono text-sec">{metrics && metrics.tokens.recordedRuns > 0 ? `${formatTokens(metrics.tokens.inputTokens)} / ${formatTokens(metrics.tokens.outputTokens)}` : '-'}</dd></div>
-                <div className="flex justify-between gap-4"><dt className="text-dim">Cache hit rate</dt><dd className="font-mono text-sec">{metrics && metrics.tokens.recordedRuns > 0 ? `${metrics.tokens.cacheHitRate}%` : '-'}</dd></div>
-              </dl>
-              {metrics && metrics.dailyRuns.length >= 2 && <div className="mt-4"><Sparkline data={metrics.dailyRuns} width={260} height={46} /></div>}
-              {github && <a href={github.security} target="_blank" rel="noopener noreferrer" className="akido-link-btn mt-4">Security {'\u2197'}</a>}
-            </Section>
-          </aside>
+          {github && (
+            <div className="flex justify-end">
+              <a href={github.security} target="_blank" rel="noopener noreferrer" className="akido-link-btn">Open repository security {'\u2197'}</a>
+            </div>
+          )}
+          <div className="h-[70vh]" aria-hidden />
         </div>
       </main>
     </>

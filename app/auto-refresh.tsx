@@ -41,7 +41,7 @@ export function RefreshButton(): React.ReactElement {
       onClick={() => router.refresh()}
       className="akido-link-btn"
     >
-      ↻ Refresh
+      {'\u21BB'} Refresh
     </button>
   );
 }

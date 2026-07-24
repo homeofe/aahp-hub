@@ -21,7 +21,7 @@ export function ProjectOverviewCard({
 }): React.ReactElement {
   const progress = project.totalTasks > 0
     ? Math.round((project.doneTasks / project.totalTasks) * 100)
-    : 0;
+    : 100;
   const status = statusTone(project);
 
   return (
@@ -81,7 +81,10 @@ export function ProjectOverviewCard({
 
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-br pt-3 font-mono text-[10px] text-dim">
           <span className="truncate" title={project.lastAgent}>{project.lastAgent}</span>
-          <span className="shrink-0">{project.lastUpdated ? <RelativeTime iso={project.lastUpdated} /> : 'no update'}</span>
+          <span className="flex shrink-0 items-center gap-2">
+            {project.worktreeCount > 1 && <span className="rounded border border-br px-1.5 py-0.5 text-sec">{project.worktreeCount} worktrees</span>}
+            <span>{project.lastUpdated ? <RelativeTime iso={project.lastUpdated} /> : 'no update'}</span>
+          </span>
         </div>
       </Link>
 

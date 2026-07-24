@@ -22,6 +22,8 @@ function project(overrides: Partial<ProjectSummary> = {}): ProjectSummary {
     githubRepo: null,
     metrics: null,
     activeSessions: [],
+    worktreeCount: 1,
+    alternatePaths: [],
     ...overrides,
   };
 }

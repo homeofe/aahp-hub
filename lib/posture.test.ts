@@ -75,6 +75,8 @@ function createMockProject(name: string, path: string): ProjectSummary {
     githubRepo: `homeofe/${name}`,
     metrics: null,
     activeSessions: [],
+    worktreeCount: 1,
+    alternatePaths: [],
   };
 }
 

@@ -292,3 +292,29 @@ describe('scanProjects', () => {
     expect(result.totals.totalRuns).toBe(2);
   });
 });
+
+describe('duplicate project discovery', () => {
+  it('collapses worktree copies under one canonical project', async () => {
+    makeProject('shared-project', {
+      project: 'shared-project',
+      quick_context: 'canonical checkout',
+      last_session: { timestamp: '2026-07-23T10:00:00Z' },
+    });
+    makeProject('shared-project-temp', {
+      project: 'shared-project',
+      quick_context: 'temporary checkout',
+      last_session: { timestamp: '2026-07-24T10:00:00Z' },
+    });
+    makeProject('shared-project-backup', {
+      project: 'shared-project',
+      quick_context: 'backup checkout',
+    });
+
+    const result = await scanProjects();
+
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0]!.path).toBe(join(tmpRoot, 'shared-project'));
+    expect(result.projects[0]!.worktreeCount).toBe(3);
+    expect(result.projects[0]!.alternatePaths).toHaveLength(2);
+  });
+});

@@ -64,6 +64,8 @@ export interface ProjectSummary {
   githubRepo: string | null;
   metrics: ProjectMetrics | null;
   activeSessions: ActiveSession[];
+  worktreeCount: number;
+  alternatePaths: string[];
 }
 
 export interface StubProject {
@@ -252,6 +254,45 @@ function isRecentlyActive(lastUpdated: string, metrics: ProjectMetrics | null): 
     return Number.isFinite(timestamp) && timestamp >= cutoff;
   });
 }
+
+const WORKTREE_COPY_PATTERN = /(?:^|[\\/])[^\\/]*(?:temp|backup|copy|archive|old)(?:[^\\/]*)?(?:[\\/]|$)/i;
+
+function canonicalProjectScore(project: ProjectSummary): number {
+  const leaf = project.path.split(/[\\/]/).at(-1)?.toLowerCase() ?? '';
+  const projectName = project.name.toLowerCase();
+  let score = leaf === projectName ? 100 : 0;
+  if (project.githubRepo) score += 30;
+  if (hasMeaningfulContext(project.quickContext)) score += 20;
+  if (project.totalTasks > 0) score += 10;
+  if (WORKTREE_COPY_PATTERN.test(project.path)) score -= 200;
+  return score;
+}
+
+function deduplicateProjects(projects: ProjectSummary[]): ProjectSummary[] {
+  const groups = new Map<string, ProjectSummary[]>();
+  for (const project of projects) {
+    const key = project.name.trim().toLocaleLowerCase();
+    const group = groups.get(key);
+    if (group) group.push(project);
+    else groups.set(key, [project]);
+  }
+
+  return [...groups.values()].map((group) => {
+    const ranked = [...group].sort((a, b) => {
+      const scoreDifference = canonicalProjectScore(b) - canonicalProjectScore(a);
+      if (scoreDifference !== 0) return scoreDifference;
+      const updatedDifference = (Date.parse(b.lastUpdated) || 0) - (Date.parse(a.lastUpdated) || 0);
+      if (updatedDifference !== 0) return updatedDifference;
+      const depthDifference = a.path.split(/[\\/]/).length - b.path.split(/[\\/]/).length;
+      if (depthDifference !== 0) return depthDifference;
+      return a.path.localeCompare(b.path);
+    });
+    const canonical = ranked[0]!;
+    canonical.worktreeCount = ranked.length;
+    canonical.alternatePaths = ranked.slice(1).map((project) => project.path);
+    return canonical;
+  });
+}
 function summarize(
   manifestPath: string,
   manifest: RawManifest,
@@ -307,6 +348,8 @@ function summarize(
     githubRepo,
     metrics: projectMetrics,
     activeSessions: sessionsByProject.get(name) ?? [],
+    worktreeCount: 1,
+    alternatePaths: [],
   };
 }
 
@@ -390,6 +433,8 @@ export async function scanProjects(): Promise<ScanResult> {
       });
     }
   }
+
+  projects.splice(0, projects.length, ...deduplicateProjects(projects));
 
   projects.sort((a, b) => {
     const aActive = a.activeSessions.length > 0 ? 0 : 1;

@@ -26,6 +26,7 @@ export async function GET(): Promise<Response> {
       isRunning: p.activeSessions.length > 0,
       recentlyActive: p.recentlyActive,
       githubRepo: p.githubRepo,
+      worktreeCount: p.worktreeCount,
     }));
 
     return jsonResponse(200, {
