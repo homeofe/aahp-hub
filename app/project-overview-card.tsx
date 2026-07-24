@@ -8,7 +8,8 @@ function statusTone(project: ProjectSummary): { label: string; className: string
   if (project.activeSessions.length > 0) return { label: 'running', className: 'text-ok' };
   if (project.inProgressTasks > 0) return { label: 'in progress', className: 'text-warn' };
   if (project.readyTasks > 0) return { label: 'ready', className: 'text-cy' };
-  return { label: 'idle', className: 'text-dim' };
+  if (project.recentlyActive) return { label: 'recent', className: 'text-cy' };
+  return { label: 'dormant', className: 'text-dim' };
 }
 
 export function ProjectOverviewCard({
@@ -31,6 +32,7 @@ export function ProjectOverviewCard({
       data-phase={project.phase}
       data-task-count={project.readyTasks + project.inProgressTasks}
       data-updated={project.lastUpdated}
+      data-recent={project.recentlyActive ? 'true' : 'false'}
     >
       <Link
         href={`/projects/${project.id}`}

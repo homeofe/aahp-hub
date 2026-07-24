@@ -76,6 +76,36 @@ describe('scanProjects', () => {
     );
   });
 
+  it('falls back to the STATUS summary when the manifest contains placeholder context', async () => {
+    const projectDir = makeProject('fallback-project', {
+      project: 'fallback-project',
+      quick_context: '(no summary available) (no summary available)',
+      last_session: {
+        agent: 'codex',
+        timestamp: new Date().toISOString(),
+        phase: 'idle',
+      },
+    });
+    writeFileSync(
+      join(projectDir, '.ai', 'handoff', 'STATUS.md'),
+      [
+        '# Current State',
+        '<!-- SECTION: summary -->',
+        '## Summary',
+        'Fallback project has a complete dashboard and no open formal tasks.',
+        '<!-- /SECTION: summary -->',
+      ].join('\n'),
+      'utf8',
+    );
+
+    const result = await scanProjects();
+    const project = result.projects[0]!;
+    expect(project.quickContext).toBe(
+      'Fallback project has a complete dashboard and no open formal tasks.',
+    );
+    expect(project.quickContextSource).toBe('status');
+    expect(project.recentlyActive).toBe(true);
+  });
   it('handles a variant manifest (array tasks, object quick_context) without crashing', async () => {
     makeProject('elvatis-defense', {
       version: '3',

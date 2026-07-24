@@ -1,7 +1,7 @@
 import 'server-only';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { normalizeGitHubRepo } from './project-links';
 import { loadMetrics, type MetricsResult, type ProjectMetrics } from './metrics';
@@ -58,7 +58,9 @@ export interface ProjectSummary {
   totalTasks: number;
   lastAgent: string;
   quickContext: string;
+  quickContextSource: 'manifest' | 'status' | 'none';
   lastUpdated: string;
+  recentlyActive: boolean;
   githubRepo: string | null;
   metrics: ProjectMetrics | null;
   activeSessions: ActiveSession[];
@@ -207,6 +209,49 @@ function normaliseTasks(raw: unknown): [string, ManifestTask][] {
   return [];
 }
 
+const RECENT_ACTIVITY_MS = 7 * 24 * 60 * 60 * 1000;
+const SUMMARY_PLACEHOLDER_PATTERN = /\(?no summary available\)?/gi;
+
+function hasMeaningfulContext(value: string): boolean {
+  return value.replace(SUMMARY_PLACEHOLDER_PATTERN, '').trim().length > 0;
+}
+
+function extractStatusSummary(markdown: string): string | null {
+  const normalized = markdown.replace(/^\uFEFF/, '');
+  const section = normalized.match(
+    /<!--\s*SECTION:\s*summary\s*-->([\s\S]*?)<!--\s*\/SECTION:\s*summary\s*-->/i,
+  )?.[1];
+  if (!section) return null;
+
+  const summary = section
+    .replace(/^\s*##\s+Summary\s*$/gim, '')
+    .replace(/\r?\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return summary.length > 0 ? summary : null;
+}
+
+async function loadStatusSummary(manifestPath: string): Promise<string | null> {
+  const statusPath = join(
+    /* turbopackIgnore: true */ dirname(manifestPath),
+    'STATUS.md',
+  );
+  try {
+    return extractStatusSummary(
+      await readFile(/* turbopackIgnore: true */ statusPath, 'utf8'),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function isRecentlyActive(lastUpdated: string, metrics: ProjectMetrics | null): boolean {
+  const cutoff = Date.now() - RECENT_ACTIVITY_MS;
+  return [lastUpdated, metrics?.lastRunAt ?? ''].some((value) => {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) && timestamp >= cutoff;
+  });
+}
 function summarize(
   manifestPath: string,
   manifest: RawManifest,
@@ -240,6 +285,8 @@ function summarize(
   const lastUpdated = lastSession ? coerceString(lastSession['timestamp']) : '';
 
   const githubRepo = normalizeGitHubRepo(manifest.github_repo);
+  const projectMetrics = metricsByProject.get(name) ?? null;
+  const quickContext = coerceString(manifest.quick_context);
 
   return {
     id: createHash('sha256').update(projectPath).digest('hex').slice(0, 12),
@@ -253,10 +300,12 @@ function summarize(
     doneTasks: done,
     totalTasks: taskEntries.length,
     lastAgent,
-    quickContext: coerceString(manifest.quick_context),
+    quickContext,
+    quickContextSource: hasMeaningfulContext(quickContext) ? 'manifest' : 'none',
     lastUpdated,
+    recentlyActive: isRecentlyActive(lastUpdated, projectMetrics),
     githubRepo,
-    metrics: metricsByProject.get(name) ?? null,
+    metrics: projectMetrics,
     activeSessions: sessionsByProject.get(name) ?? [],
   };
 }
@@ -324,6 +373,11 @@ export async function scanProjects(): Promise<ScanResult> {
       const raw = await readFile(/* turbopackIgnore: true */ manifestPath, 'utf8');
       const manifest = parseManifest(raw);
       const summary = summarize(manifestPath, manifest, metrics.byProject, sessionsByProject);
+      if (!hasMeaningfulContext(summary.quickContext)) {
+        const statusSummary = await loadStatusSummary(manifestPath);
+        summary.quickContext = statusSummary ?? '';
+        summary.quickContextSource = statusSummary ? 'status' : 'none';
+      }
       if (isStubProject(summary)) {
         stubs.push({ name: summary.name, path: summary.path });
       } else {

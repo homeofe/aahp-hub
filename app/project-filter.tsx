@@ -7,18 +7,20 @@ import {
   PROJECT_EXPLORER_EVENT,
   type ProjectExplorerDetail,
 } from './project-explorer-events';
-type Filter = 'all' | 'running' | 'has-tasks' | 'idle';
+type Filter = 'all' | 'active' | 'running' | 'has-tasks' | 'dormant';
 
-const FILTERS: { id: Filter; label: string }[] = [
+const FILTERS: { id: Filter; label: string; title?: string }[] = [
   { id: 'all', label: 'All Projects' },
+  { id: 'active', label: 'Active', title: 'Running, actionable, or updated within 7 days' },
   { id: 'running', label: '\u25C9 Running' },
-  { id: 'has-tasks', label: '\u26A1 Ready Tasks' },
-  { id: 'idle', label: 'Idle' },
+  { id: 'has-tasks', label: '\u26A1 Actionable' },
+  { id: 'dormant', label: 'Dormant' },
 ];
 
 function filterFromParam(value: string | null): Filter {
-  if (value === 'running' || value === 'has-tasks' || value === 'idle') return value;
+  if (value === 'active' || value === 'running' || value === 'has-tasks' || value === 'dormant') return value;
   if (value === 'ready') return 'has-tasks';
+  if (value === 'idle') return 'dormant';
   return 'all';
 }
 
@@ -55,12 +57,14 @@ export function ProjectFilter(): React.ReactElement {
       const name = card.dataset['name']?.toLowerCase() ?? '';
       const status = card.dataset['filter'] ?? 'idle';
       const cardPhase = card.dataset['phase']?.toLowerCase() ?? '';
+      const recentlyActive = card.dataset['recent'] === 'true';
       const matchesSearch = term === '' || name.includes(term);
       const matchesFilter =
         filter === 'all' ||
+        (filter === 'active' && (status !== 'idle' || recentlyActive)) ||
         (filter === 'running' && status === 'running') ||
         (filter === 'has-tasks' && (status === 'running' || status === 'has-tasks')) ||
-        (filter === 'idle' && status === 'idle');
+        (filter === 'dormant' && status === 'idle' && !recentlyActive);
       const matchesPhase = phaseTerm === '' || cardPhase === phaseTerm;
       const visible = matchesSearch && matchesFilter && matchesPhase;
 
@@ -111,6 +115,7 @@ export function ProjectFilter(): React.ReactElement {
               type="button"
               onClick={() => setFilter(f.id)}
               className={`akido-pill ${filter === f.id ? 'is-active' : ''}`}
+              title={f.title}
             >
               {f.label}
             </button>

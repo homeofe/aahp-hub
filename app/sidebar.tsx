@@ -13,6 +13,7 @@ interface ProjectTreeNode {
   doneTasks: number;
   totalTasks: number;
   isRunning: boolean;
+  recentlyActive: boolean;
   githubRepo: string | null;
 }
 
@@ -35,7 +36,7 @@ const NAV_GROUPS = [
   },
 ];
 
-type ProjectScope = 'all' | 'active' | 'idle';
+type ProjectScope = 'all' | 'active' | 'running' | 'actionable' | 'dormant';
 
 function openCommandPalette(): void {
   window.dispatchEvent(new CustomEvent('aahp:open-command-palette'));
@@ -66,7 +67,14 @@ export function Sidebar(): React.ReactElement {
     const term = search.trim().toLowerCase();
     return projects
       .filter((project) => term === '' || project.name.toLowerCase().includes(term))
-      .filter((project) => scope === 'all' || (scope === 'active' ? project.isRunning || project.readyTasks + project.inProgressTasks > 0 : !project.isRunning && project.readyTasks + project.inProgressTasks === 0))
+      .filter((project) => {
+        const hasWork = project.readyTasks + project.inProgressTasks > 0;
+        if (scope === 'all') return true;
+        if (scope === 'active') return project.isRunning || hasWork || project.recentlyActive;
+        if (scope === 'running') return project.isRunning;
+        if (scope === 'actionable') return hasWork;
+        return !project.isRunning && !hasWork && !project.recentlyActive;
+      })
       .sort((a, b) => Number(b.isRunning) - Number(a.isRunning) || (b.readyTasks + b.inProgressTasks) - (a.readyTasks + a.inProgressTasks) || a.name.localeCompare(b.name));
   }, [projects, scope, search]);
 
@@ -119,8 +127,21 @@ export function Sidebar(): React.ReactElement {
             {projectsExpanded && (
               <div className="px-3 pt-2">
                 <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a project..." aria-label="Find a project" className="w-full rounded-[var(--r)] border border-br bg-[var(--c1)] px-2.5 py-2 font-mono text-[10px] text-tx outline-none placeholder:text-dim focus:border-cy" />
-                <div className="my-2 flex gap-1">
-                  {(['all', 'active', 'idle'] as const).map((item) => <button key={item} type="button" onClick={() => setScope(item)} className={`flex-1 rounded border px-1.5 py-1 font-mono text-[9px] capitalize ${scope === item ? 'border-cy bg-[var(--cy-glow)] text-cy' : 'border-br text-dim hover:text-sec'}`}>{item}</button>)}
+                <div className="my-2">
+                  <label className="sr-only" htmlFor="sidebar-project-scope">Project state</label>
+                  <select
+                    id="sidebar-project-scope"
+                    value={scope}
+                    onChange={(event) => setScope(event.target.value as ProjectScope)}
+                    className="w-full rounded-[var(--r)] border border-br bg-[var(--c1)] px-2 py-1.5 font-mono text-[9px] text-sec outline-none focus:border-cy"
+                    title="Active includes running, actionable, or updated within 7 days"
+                  >
+                    <option value="all">All projects</option>
+                    <option value="active">Active - live, work, or recent</option>
+                    <option value="running">Running now</option>
+                    <option value="actionable">Actionable tasks</option>
+                    <option value="dormant">Dormant - no recent activity</option>
+                  </select>
                 </div>
                 <div className="space-y-0.5">
                   {loading && <p className="px-2 py-2 font-mono text-[10px] text-dim">Loading projects...</p>}
@@ -129,7 +150,7 @@ export function Sidebar(): React.ReactElement {
                     const active = pathname === `/projects/${project.id}`;
                     return (
                       <Link key={project.id} href={`/projects/${project.id}`} className={`flex items-center gap-2 rounded px-2 py-1.5 font-mono text-[10px] transition ${active ? 'bg-[var(--cy-glow)] text-cy' : 'text-sec hover:bg-[var(--c2)] hover:text-tx'}`} title={`${project.name} / ${project.phase}`}>
-                        <span className={project.isRunning ? 'text-ok' : project.readyTasks + project.inProgressTasks > 0 ? 'text-warn' : 'text-dim'} aria-hidden>{'\u25CF'}</span>
+                        <span className={project.isRunning ? 'text-ok' : project.readyTasks + project.inProgressTasks > 0 ? 'text-warn' : project.recentlyActive ? 'text-cy' : 'text-dim'} aria-hidden>{'\u25CF'}</span>
                         <span className="min-w-0 flex-1 truncate">{project.name}</span>
                         {project.readyTasks + project.inProgressTasks > 0 && <span className="rounded bg-[var(--c2)] px-1 text-[9px] text-cy">{project.readyTasks + project.inProgressTasks}</span>}
                       </Link>

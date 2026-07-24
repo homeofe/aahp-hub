@@ -24,6 +24,7 @@ export async function GET(): Promise<Response> {
       doneTasks: p.doneTasks,
       totalTasks: p.totalTasks,
       isRunning: p.activeSessions.length > 0,
+      recentlyActive: p.recentlyActive,
       githubRepo: p.githubRepo,
     }));
 

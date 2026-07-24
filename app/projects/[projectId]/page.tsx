@@ -89,7 +89,7 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
                   <h1 className="break-words font-mono text-2xl font-bold text-tx">{project.name}</h1>
                   <span className="akido-chip">{project.phase}</span>
                   <span className={`akido-pill ${isRunning ? 'text-ok border-[rgba(14,169,125,0.4)]' : ''}`}>
-                    {isRunning ? 'running' : project.inProgressTasks > 0 ? 'in progress' : project.readyTasks > 0 ? 'ready' : 'idle'}
+                    {isRunning ? 'running' : project.inProgressTasks > 0 ? 'in progress' : project.readyTasks > 0 ? 'ready' : project.recentlyActive ? 'recently active' : 'dormant'}
                   </span>
                 </div>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-sec">
@@ -99,6 +99,7 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
                   <span>agent: <span className="text-sec">{project.lastAgent}</span></span>
                   <span>updated: <span className="text-sec">{project.lastUpdated ? <RelativeTime iso={project.lastUpdated} /> : 'never'}</span></span>
                   <span>path: <span className="text-sec">{redactHome(project.path)}</span></span>
+                  <span>context: <span className="text-sec">{project.quickContextSource === 'status' ? 'STATUS.md fallback' : project.quickContextSource}</span></span>
                 </div>
               </div>
             </div>
@@ -134,7 +135,7 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
         </nav>
 
         <div id="overview" className="scroll-mt-20 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard label="Tasks" value={`${project.doneTasks}/${project.totalTasks}`} note={`${project.readyTasks} ready / ${project.inProgressTasks} active`} tone="text-cy" />
+          <MetricCard label="Tasks" value={`${project.doneTasks}/${project.totalTasks}`} note={project.totalTasks === 0 ? 'No formal tasks in current handoff' : `${project.readyTasks} ready / ${project.inProgressTasks} active`} tone="text-cy" />
           <MetricCard label="Health" value={`${health.score}/100`} note={`Grade ${health.grade}`} tone={health.score >= 75 ? 'text-ok' : health.score >= 50 ? 'text-warn' : 'text-er'} />
           <MetricCard label="Success" value={metrics ? `${metrics.successRate}%` : '-'} note={metrics ? `${metrics.totalRuns} recorded runs` : 'No runner metrics'} tone={metrics && metrics.successRate >= 80 ? 'text-ok' : 'text-warn'} />
           <MetricCard label="Average run" value={metrics ? formatDuration(metrics.avgDurationMs) : '-'} note={metrics ? `${metrics.runs7d} runs in 7 days` : 'No runner metrics'} />
@@ -144,7 +145,7 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
           <div className="space-y-4">
             <Section id="tasks" eyebrow="Execution queue" title={`Tasks (${project.tasks.length})`}>
               {project.tasks.length === 0 ? (
-                <p className="text-sm text-dim">No tasks are recorded in this manifest.</p>
+                <p className="text-sm text-dim">No formal tasks are currently recorded. This usually means the roadmap is complete or future work has not been promoted to formal tasks.</p>
               ) : (
                 <div className="overflow-hidden rounded-[var(--r)] border border-br">
                   {project.tasks.map((task) => (
