@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
   { href: '/metrics', icon: '◆', label: 'Metrics', group: 'WORK' },
   { href: '/sessions', icon: '◉', label: 'Sessions' },
   { href: '/logs', icon: '≡', label: 'Logs' },
+  { href: '/posture', icon: '🛡', label: 'Posture', group: 'SECURITY' },
 ];
 
 interface NavSlot {

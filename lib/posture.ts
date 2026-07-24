@@ -1,0 +1,259 @@
+import 'server-only';
+import { readFile, stat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { scanProjects, type ProjectSummary } from './manifest';
+
+export interface SupplyChainGuardStatus {
+  status: 'passed' | 'failed' | 'stale' | 'missing';
+  lastRun: string | null;
+  details?: string;
+}
+
+export interface ContainerScanStatus {
+  status: 'passed' | 'failed' | 'unsupported' | 'missing';
+  lastRun: string | null;
+  details?: string;
+}
+
+export interface RepoPosture {
+  repoName: string;
+  path: string;
+  githubRepo: string | null;
+  ecosystem: 'npm' | 'python' | 'go' | 'docker' | 'unsupported';
+  lastDependencyScan: string | null;
+  supplyChainGuard: SupplyChainGuardStatus;
+  containerScan: ContainerScanStatus | null;
+  lastDependencyUpdate: string | null;
+  openAdvisories: {
+    critical: number;
+    high: number;
+    total: number;
+  };
+  permissions: {
+    hasAccess: boolean;
+    missingPermissions: string[];
+  };
+  isStale: boolean;
+  staleReason?: string;
+}
+
+export interface EstatePostureSummary {
+  totalRepos: number;
+  healthyCount: number;
+  staleCount: number;
+  vulnerableCount: number;
+  missingPermissionsCount: number;
+  totalCriticalAdvisories: number;
+  totalHighAdvisories: number;
+}
+
+export interface EstatePostureResult {
+  summary: EstatePostureSummary;
+  repos: RepoPosture[];
+  scannedAt: string;
+}
+
+export interface RawPostureFile {
+  repoName?: string;
+  ecosystem?: string;
+  lastDependencyScan?: string;
+  supplyChainGuard?: {
+    status?: string;
+    lastRun?: string;
+    details?: string;
+  };
+  containerScan?: {
+    status?: string;
+    lastRun?: string;
+    details?: string;
+  };
+  lastDependencyUpdate?: string;
+  openAdvisories?: {
+    critical?: number;
+    high?: number;
+    total?: number;
+  };
+  permissions?: {
+    hasAccess?: boolean;
+    missingPermissions?: string[];
+  };
+}
+
+const STALE_THRESHOLD_DAYS = 7;
+
+function isFileStale(isoTimestamp: string | null): boolean {
+  if (!isoTimestamp) return true;
+  const time = new Date(isoTimestamp).getTime();
+  if (isNaN(time)) return true;
+  const now = Date.now();
+  const diffDays = (now - time) / (1000 * 60 * 60 * 24);
+  return diffDays > STALE_THRESHOLD_DAYS;
+}
+
+export async function detectEcosystem(repoPath: string): Promise<RepoPosture['ecosystem']> {
+  try {
+    const pkgJson = join(repoPath, 'package.json');
+    const sPkg = await stat(pkgJson).catch(() => null);
+    if (sPkg && sPkg.isFile()) return 'npm';
+
+    const reqTxt = join(repoPath, 'requirements.txt');
+    const sReq = await stat(reqTxt).catch(() => null);
+    if (sReq && sReq.isFile()) return 'python';
+
+    const pyProject = join(repoPath, 'pyproject.toml');
+    const sPy = await stat(pyProject).catch(() => null);
+    if (sPy && sPy.isFile()) return 'python';
+
+    const goMod = join(repoPath, 'go.mod');
+    const sGo = await stat(goMod).catch(() => null);
+    if (sGo && sGo.isFile()) return 'go';
+
+    const dockerFile = join(repoPath, 'Dockerfile');
+    const sDock = await stat(dockerFile).catch(() => null);
+    if (sDock && sDock.isFile()) return 'docker';
+
+    return 'unsupported';
+  } catch {
+    return 'unsupported';
+  }
+}
+
+export async function evaluateRepoPosture(project: ProjectSummary): Promise<RepoPosture> {
+  const repoPath = project.path;
+  const postureFile = join(repoPath, '.ai', 'posture.json');
+
+  let rawData: RawPostureFile | null = null;
+  let fileError: string | null = null;
+
+  try {
+    const content = await readFile(postureFile, 'utf8');
+    rawData = JSON.parse(content) as RawPostureFile;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'EACCES' || code === 'EPERM') {
+      fileError = 'Permission denied reading .ai/posture.json';
+    } else if (code !== 'ENOENT') {
+      fileError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  const ecosystem = rawData?.ecosystem as RepoPosture['ecosystem'] ?? await detectEcosystem(repoPath);
+
+  // Default permissions state
+  const hasAccess = fileError ? false : rawData?.permissions?.hasAccess ?? true;
+  const missingPermissions = fileError
+    ? ['read_posture_file']
+    : rawData?.permissions?.missingPermissions ?? [];
+
+  // Default posture values if file missing or unreadable
+  const lastScan = rawData?.lastDependencyScan ?? project.lastUpdated ?? null;
+
+  const scgStatusRaw = rawData?.supplyChainGuard?.status;
+  const scgStatus: SupplyChainGuardStatus['status'] =
+    scgStatusRaw === 'passed' || scgStatusRaw === 'failed' || scgStatusRaw === 'stale' || scgStatusRaw === 'missing'
+      ? scgStatusRaw
+      : rawData?.supplyChainGuard
+        ? 'stale'
+        : 'missing';
+
+  const scgLastRun = rawData?.supplyChainGuard?.lastRun ?? null;
+
+  const containerScanRaw = rawData?.containerScan?.status;
+  const containerScan: ContainerScanStatus | null = rawData?.containerScan
+    ? {
+        status:
+          containerScanRaw === 'passed' || containerScanRaw === 'failed' || containerScanRaw === 'unsupported'
+            ? containerScanRaw
+            : 'missing',
+        lastRun: rawData.containerScan.lastRun ?? null,
+        details: rawData.containerScan.details,
+      }
+    : ecosystem === 'docker'
+      ? { status: 'missing', lastRun: null, details: 'Dockerfile present but container scan not executed' }
+      : null;
+
+  const openAdvisories = {
+    critical: rawData?.openAdvisories?.critical ?? 0,
+    high: rawData?.openAdvisories?.high ?? 0,
+    total: rawData?.openAdvisories?.total ?? (rawData?.openAdvisories?.critical ?? 0) + (rawData?.openAdvisories?.high ?? 0),
+  };
+
+  const isStale = isFileStale(lastScan) || scgStatus === 'stale' || scgStatus === 'missing' || !hasAccess;
+
+  let staleReason: string | undefined = undefined;
+  if (!hasAccess) {
+    staleReason = `Access restricted: ${missingPermissions.join(', ')}`;
+  } else if (isFileStale(lastScan)) {
+    staleReason = `Last scan date (${lastScan ?? 'never'}) is older than ${STALE_THRESHOLD_DAYS} days`;
+  } else if (scgStatus === 'stale') {
+    staleReason = 'Supply Chain Guard run is stale';
+  } else if (scgStatus === 'missing') {
+    staleReason = 'Supply Chain Guard workflow missing';
+  }
+
+  return {
+    repoName: project.name,
+    path: repoPath,
+    githubRepo: project.githubRepo,
+    ecosystem,
+    lastDependencyScan: lastScan,
+    supplyChainGuard: {
+      status: scgStatus,
+      lastRun: scgLastRun,
+      details: rawData?.supplyChainGuard?.details,
+    },
+    containerScan,
+    lastDependencyUpdate: rawData?.lastDependencyUpdate ?? null,
+    openAdvisories,
+    permissions: {
+      hasAccess,
+      missingPermissions,
+    },
+    isStale,
+    staleReason,
+  };
+}
+
+export async function loadEstatePosture(): Promise<EstatePostureResult> {
+  const scan = await scanProjects();
+  const repos = await Promise.all(scan.projects.map((p) => evaluateRepoPosture(p)));
+
+  let healthyCount = 0;
+  let staleCount = 0;
+  let vulnerableCount = 0;
+  let missingPermissionsCount = 0;
+  let totalCritical = 0;
+  let totalHigh = 0;
+
+  for (const r of repos) {
+    if (!r.permissions.hasAccess) {
+      missingPermissionsCount++;
+    }
+    if (r.isStale) {
+      staleCount++;
+    }
+    if (r.openAdvisories.total > 0 || r.supplyChainGuard.status === 'failed') {
+      vulnerableCount++;
+    }
+    if (!r.isStale && r.permissions.hasAccess && r.openAdvisories.total === 0 && r.supplyChainGuard.status === 'passed') {
+      healthyCount++;
+    }
+
+    totalCritical += r.openAdvisories.critical;
+    totalHigh += r.openAdvisories.high;
+  }
+
+  return {
+    summary: {
+      totalRepos: repos.length,
+      healthyCount,
+      staleCount,
+      vulnerableCount,
+      missingPermissionsCount,
+      totalCriticalAdvisories: totalCritical,
+      totalHighAdvisories: totalHigh,
+    },
+    repos,
+    scannedAt: new Date().toISOString(),
+  };
+}
