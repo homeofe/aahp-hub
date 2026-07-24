@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
-  outputFileTracingExcludes: {
-    '*': ['./**/*'],
-  },
 };
 
 export default nextConfig;
