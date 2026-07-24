@@ -18,14 +18,16 @@ export function computeHealth(project: ProjectSummary): HealthScore {
   const factors: HealthFactor[] = [];
 
   // Task completion ratio (30% weight)
-  const taskRatio = project.totalTasks > 0
-    ? project.doneTasks / project.totalTasks
-    : 0;
+  const taskScore = project.totalTasks > 0
+    ? Math.round((project.doneTasks / project.totalTasks) * 100)
+    : 100;
   factors.push({
     name: 'completion',
-    score: Math.round(taskRatio * 100),
+    score: taskScore,
     weight: 30,
-    detail: `${project.doneTasks}/${project.totalTasks} tasks done`,
+    detail: project.totalTasks > 0
+      ? `${project.doneTasks}/${project.totalTasks} tasks done`
+      : 'no formal tasks recorded',
   });
 
   // Success rate from metrics (25% weight)
