@@ -85,7 +85,7 @@ function metricsFilePath(): string {
   const explicit = process.env['METRICS_FILE'];
   if (explicit && explicit.trim().length > 0) return explicit;
   const home = process.env['HOME'] ?? homedir();
-  return join(home, '.aahp', 'metrics.jsonl');
+  return join(/* turbopackIgnore: true */ home, '.aahp', 'metrics.jsonl');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -163,7 +163,7 @@ export async function loadAnalytics(): Promise<AnalyticsResult> {
   const file = metricsFilePath();
   let text: string;
   try {
-    text = await readFile(file, 'utf8');
+    text = await readFile(/* turbopackIgnore: true */ file, 'utf8');
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === 'ENOENT') return emptyAnalytics(file, false, null);

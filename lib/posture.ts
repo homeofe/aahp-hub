@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { scanProjects, type ProjectSummary } from './manifest';
 
 export async function detectSupplyChainGuard(repoPath: string): Promise<SupplyChainGuardStatus> {
-  const workflowsDir = join(repoPath, '.github', 'workflows');
+  const workflowsDir = join(/* turbopackIgnore: true */ repoPath, '.github', 'workflows');
   try {
-    const files = await readdir(workflowsDir);
+    const files = await readdir(/* turbopackIgnore: true */ workflowsDir);
     let foundScg = false;
     let foundVerify = false;
 
@@ -132,24 +132,24 @@ function isFileStale(isoTimestamp: string | null): boolean {
 
 export async function detectEcosystem(repoPath: string): Promise<RepoPosture['ecosystem']> {
   try {
-    const pkgJson = join(repoPath, 'package.json');
-    const sPkg = await stat(pkgJson).catch(() => null);
+    const pkgJson = join(/* turbopackIgnore: true */ repoPath, 'package.json');
+    const sPkg = await stat(/* turbopackIgnore: true */ pkgJson).catch(() => null);
     if (sPkg && sPkg.isFile()) return 'npm';
 
-    const reqTxt = join(repoPath, 'requirements.txt');
-    const sReq = await stat(reqTxt).catch(() => null);
+    const reqTxt = join(/* turbopackIgnore: true */ repoPath, 'requirements.txt');
+    const sReq = await stat(/* turbopackIgnore: true */ reqTxt).catch(() => null);
     if (sReq && sReq.isFile()) return 'python';
 
-    const pyProject = join(repoPath, 'pyproject.toml');
-    const sPy = await stat(pyProject).catch(() => null);
+    const pyProject = join(/* turbopackIgnore: true */ repoPath, 'pyproject.toml');
+    const sPy = await stat(/* turbopackIgnore: true */ pyProject).catch(() => null);
     if (sPy && sPy.isFile()) return 'python';
 
-    const goMod = join(repoPath, 'go.mod');
-    const sGo = await stat(goMod).catch(() => null);
+    const goMod = join(/* turbopackIgnore: true */ repoPath, 'go.mod');
+    const sGo = await stat(/* turbopackIgnore: true */ goMod).catch(() => null);
     if (sGo && sGo.isFile()) return 'go';
 
-    const dockerFile = join(repoPath, 'Dockerfile');
-    const sDock = await stat(dockerFile).catch(() => null);
+    const dockerFile = join(/* turbopackIgnore: true */ repoPath, 'Dockerfile');
+    const sDock = await stat(/* turbopackIgnore: true */ dockerFile).catch(() => null);
     if (sDock && sDock.isFile()) return 'docker';
 
     return 'unsupported';
@@ -160,13 +160,13 @@ export async function detectEcosystem(repoPath: string): Promise<RepoPosture['ec
 
 export async function evaluateRepoPosture(project: ProjectSummary): Promise<RepoPosture> {
   const repoPath = project.path;
-  const postureFile = join(repoPath, '.ai', 'posture.json');
+  const postureFile = join(/* turbopackIgnore: true */ repoPath, '.ai', 'posture.json');
 
   let rawData: RawPostureFile | null = null;
   let fileError: string | null = null;
 
   try {
-    const content = await readFile(postureFile, 'utf8');
+    const content = await readFile(/* turbopackIgnore: true */ postureFile, 'utf8');
     rawData = JSON.parse(content) as RawPostureFile;
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;

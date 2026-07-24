@@ -127,6 +127,32 @@ describe('loadMetrics', () => {
     expect(a.lastRunSuccess).toBe(true);
     expect(a.lastRunBackend).toBe('claude-cli');
   });
+
+  it('builds a seven-day run series and orders recent events by timestamp', async () => {
+    const now = Date.now();
+    const today = new Date(now - 60 * 60 * 1000).toISOString();
+    const yesterday = new Date(now - 25 * 60 * 60 * 1000).toISOString();
+    const threeDaysAgo = new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+    writeFileSync(
+      metricsFile,
+      [
+        metric({ repo: 'a', timestamp: yesterday, taskId: 'T-002' }),
+        metric({ repo: 'a', timestamp: today, taskId: 'T-003' }),
+        metric({ repo: 'a', timestamp: threeDaysAgo, taskId: 'T-001' }),
+      ].join('\n'),
+      'utf8',
+    );
+
+    const a = (await loadMetrics()).byProject.get('a')!;
+    expect(a.dailyRuns).toHaveLength(7);
+    expect(a.dailyRuns.reduce((sum, count) => sum + count, 0)).toBe(3);
+    expect(a.recentEvents.map((event) => event.taskId)).toEqual([
+      'T-003',
+      'T-002',
+      'T-001',
+    ]);
+  });
 });
 
 describe('token aggregation', () => {

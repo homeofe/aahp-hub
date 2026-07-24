@@ -1,20 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-interface NavItem {
-  href: string;
-  icon: string;
-  label: string;
-  group?: string;
-  isExpandable?: boolean;
-}
-
 interface ProjectTreeNode {
+  id: string;
   name: string;
-  path: string;
   phase: string;
   readyTasks: number;
   inProgressTasks: number;
@@ -24,188 +16,136 @@ interface ProjectTreeNode {
   githubRepo: string | null;
 }
 
-const NAV: NavItem[] = [
-  { href: '/', icon: '▦', label: 'Overview', isExpandable: true },
-  { href: '/metrics', icon: '◆', label: 'Metrics', group: 'WORK' },
-  { href: '/sessions', icon: '◉', label: 'Sessions' },
-  { href: '/logs', icon: '≡', label: 'Logs' },
-  { href: '/posture', icon: '🛡', label: 'Posture', group: 'SECURITY' },
+const NAV_GROUPS = [
+  {
+    label: 'Command',
+    items: [{ href: '/', icon: '\u25A6', label: 'Fleet overview' }],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { href: '/metrics', icon: '\u25C6', label: 'Performance' },
+      { href: '/sessions', icon: '\u25C9', label: 'Agents' },
+      { href: '/logs', icon: '\u2261', label: 'Run logs' },
+    ],
+  },
+  {
+    label: 'Governance',
+    items: [{ href: '/posture', icon: '\u25C8', label: 'Security posture' }],
+  },
 ];
+
+type ProjectScope = 'all' | 'active' | 'idle';
+
+function openCommandPalette(): void {
+  window.dispatchEvent(new CustomEvent('aahp:open-command-palette'));
+}
 
 export function Sidebar(): React.ReactElement {
   const pathname = usePathname();
   const router = useRouter();
-  const [treeExpanded, setTreeExpanded] = useState(true);
   const [projects, setProjects] = useState<ProjectTreeNode[]>([]);
-  const [searchFilter, setSearchFilter] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const isActive = (href: string): boolean =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href);
+  const [search, setSearch] = useState('');
+  const [scope, setScope] = useState<ProjectScope>('all');
+  const [loading, setLoading] = useState(true);
+  const [projectsExpanded, setProjectsExpanded] = useState(true);
 
   useEffect(() => {
-    let unmounted = false;
-    async function fetchProjects(): Promise<void> {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/projects');
-        if (res.ok) {
-          const data = (await res.json()) as { projects: ProjectTreeNode[] };
-          if (!unmounted && Array.isArray(data.projects)) {
-            setProjects(data.projects);
-          }
-        }
-      } catch {
-        // ignore fetch error
-      } finally {
-        if (!unmounted) setLoading(false);
-      }
-    }
-    fetchProjects();
-    return () => {
-      unmounted = true;
-    };
+    let cancelled = false;
+    fetch('/api/projects')
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Project request failed')))
+      .then((data: { projects?: ProjectTreeNode[] }) => {
+        if (!cancelled && Array.isArray(data.projects)) setProjects(data.projects);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
-  const filteredProjects = projects.filter((p) =>
-    p.name.toLowerCase().includes(searchFilter.toLowerCase()),
-  );
+  const filteredProjects = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return projects
+      .filter((project) => term === '' || project.name.toLowerCase().includes(term))
+      .filter((project) => scope === 'all' || (scope === 'active' ? project.isRunning || project.readyTasks + project.inProgressTasks > 0 : !project.isRunning && project.readyTasks + project.inProgressTasks === 0))
+      .sort((a, b) => Number(b.isRunning) - Number(a.isRunning) || (b.readyTasks + b.inProgressTasks) - (a.readyTasks + a.inProgressTasks) || a.name.localeCompare(b.name));
+  }, [projects, scope, search]);
 
-  const handleProjectClick = (projectName: string): void => {
-    if (pathname === '/') {
-      const card = document.querySelector(`[data-name="${projectName}"]`);
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.classList.add('ring-2', 'ring-[var(--cy)]');
-        setTimeout(() => card.classList.remove('ring-2', 'ring-[var(--cy)]'), 2000);
-      }
-    } else {
-      router.push(`/?project=${encodeURIComponent(projectName)}`);
-    }
-  };
+  const isActive = (href: string): boolean => href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   return (
-    <aside className="w-[230px] shrink-0 border-r border-br bg-[rgba(14,23,56,0.92)] backdrop-blur-md flex flex-col justify-between h-screen sticky top-0">
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-4 border-b border-br">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-cy shadow-[0_0_8px_rgba(0,180,216,0.8)]" />
-            <h1
-              className="text-[var(--fs-base)] font-bold tracking-wide text-tx"
-              style={{ fontFamily: 'var(--font-mono)' }}
-            >
-              <span className="text-cy">AAHP</span> Hub
-            </h1>
-          </div>
-          <p className="text-[9px] text-dim mt-1 font-mono uppercase tracking-widest leading-tight">
-            Executive Command Center
-          </p>
-        </div>
-
-        <nav className="py-2">
-          {NAV.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <div key={item.href}>
-                {item.group && (
-                  <div className="px-4 pt-4 pb-1 font-mono text-[9px] tracking-widest text-dim uppercase opacity-80">
-                    {`// ${item.group}`}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <Link
-                    href={item.href}
-                    className={`flex-1 flex items-center gap-3 px-4 py-2 text-[var(--fs-sm)] font-mono transition-all ${
-                      active
-                        ? 'text-cy bg-[var(--cy-glow)] border-l-2 border-cy -ml-px font-bold shadow-[inset_4px_0_12px_rgba(0,180,216,0.15)]'
-                        : 'text-sec hover:text-tx hover:bg-[var(--c2)]'
-                    }`}
-                  >
-                    <span className="text-[var(--fs-sm)] w-4 text-center" aria-hidden>
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </Link>
-
-                  {item.isExpandable && (
-                    <button
-                      onClick={() => setTreeExpanded(!treeExpanded)}
-                      className="px-3 py-2 text-dim hover:text-cy font-mono text-[10px]"
-                      title={treeExpanded ? 'Collapse project tree' : 'Expand project tree'}
-                    >
-                      {treeExpanded ? '▾' : '▸'}
-                    </button>
-                  )}
-                </div>
-
-                {/* Expandable Project Tree under Overview */}
-                {item.isExpandable && treeExpanded && (
-                  <div className="pl-6 pr-2 py-1 space-y-1 font-mono text-[11px] animate-in fade-in duration-100 border-l border-br/40 ml-5">
-                    {projects.length > 5 && (
-                      <input
-                        type="text"
-                        placeholder="Search tree..."
-                        value={searchFilter}
-                        onChange={(e) => setSearchFilter(e.target.value)}
-                        className="w-full px-2 py-1 mb-1 rounded bg-[var(--c2)] border border-br text-[10px] text-tx placeholder:text-dim focus:outline-none focus:border-cy"
-                      />
-                    )}
-
-                    {loading && projects.length === 0 && (
-                      <p className="text-[10px] text-dim px-2 py-1">Loading projects...</p>
-                    )}
-
-                    {filteredProjects.map((p, idx) => (
-                      <button
-                        key={`${p.name}-${p.path}-${idx}`}
-                        onClick={() => handleProjectClick(p.name)}
-                        className="w-full text-left px-2 py-1 rounded hover:bg-[var(--c2)] transition-colors flex items-center justify-between gap-1 group"
-                        title={`${p.name} (${p.readyTasks} ready, ${p.doneTasks} done)`}
-                      >
-                        <span className="flex items-center gap-1.5 min-w-0">
-                          <span
-                            className={`text-[8px] ${
-                              p.isRunning
-                                ? 'text-ok animate-pulse'
-                                : p.readyTasks > 0
-                                  ? 'text-warn'
-                                  : 'text-dim'
-                            }`}
-                          >
-                            ●
-                          </span>
-                          <span className="truncate text-sec group-hover:text-tx">{p.name}</span>
-                        </span>
-                        {p.readyTasks > 0 && (
-                          <span className="text-[9px] text-cy font-bold px-1 rounded bg-[var(--cy-soft)]">
-                            {p.readyTasks}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+    <>
+      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-br bg-[rgba(7,12,30,0.96)] px-4 backdrop-blur-md lg:hidden">
+        <Link href="/" className="font-mono text-sm font-bold text-tx"><span className="text-cy">AAHP</span> Hub</Link>
+        <nav className="flex items-center gap-1" aria-label="Mobile navigation">
+          <Link href="/" className="rounded px-2 py-1 font-mono text-[10px] text-sec hover:bg-[var(--c2)] hover:text-cy">Fleet</Link>
+          <Link href="/sessions" className="rounded px-2 py-1 font-mono text-[10px] text-sec hover:bg-[var(--c2)] hover:text-cy">Agents</Link>
+          <button type="button" onClick={openCommandPalette} className="rounded border border-br px-2 py-1 font-mono text-[10px] text-cy">Search</button>
         </nav>
-      </div>
+      </header>
 
-      <div className="px-4 py-3 border-t border-br text-[9px] font-mono text-dim space-y-1 bg-[var(--c1)]">
-        <div className="flex items-center justify-between text-sec">
-          <span>AAHP Hub</span>
-          <span className="text-cy">v3.8.1</span>
+      <aside className="sticky top-0 hidden h-screen w-[260px] shrink-0 flex-col border-r border-br bg-[rgba(10,17,43,0.96)] backdrop-blur-md lg:flex">
+        <div className="border-b border-br px-4 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-cy shadow-[0_0_8px_rgba(0,180,216,0.8)]" />
+            <span className="font-mono text-[var(--fs-base)] font-bold tracking-wide text-tx"><span className="text-cy">AAHP</span> Hub</span>
+          </Link>
+          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-dim">Project operations console</p>
+          <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+            <button type="button" onClick={openCommandPalette} className="flex items-center justify-between rounded-[var(--r)] border border-br bg-[var(--c1)] px-2.5 py-2 font-mono text-[10px] text-sec hover:border-cy hover:text-cy">
+              <span>Search & commands</span><kbd className="text-[9px] text-dim">Ctrl K</kbd>
+            </button>
+            <button type="button" onClick={() => router.refresh()} className="rounded-[var(--r)] border border-br bg-[var(--c1)] px-2.5 text-cy hover:border-cy" title="Refresh current view" aria-label="Refresh current view">{'\u21BB'}</button>
+          </div>
         </div>
-        <a
-          href="https://github.com/homeofe/aahp-hub"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-cy block truncate"
-        >
-          homeofe/aahp-hub
-        </a>
-      </div>
-    </aside>
+
+        <div className="flex-1 overflow-y-auto pb-4">
+          <nav className="py-2" aria-label="Primary navigation">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label}>
+                <div className="px-4 pb-1 pt-3 font-mono text-[9px] uppercase tracking-[0.18em] text-dim">{group.label}</div>
+                {group.items.map((item) => (
+                  <Link key={item.href} href={item.href} className={`flex items-center gap-3 border-l-2 px-4 py-2 font-mono text-[var(--fs-xs)] transition ${isActive(item.href) ? 'border-cy bg-[var(--cy-glow)] text-cy' : 'border-transparent text-sec hover:bg-[var(--c2)] hover:text-tx'}`}>
+                    <span className="w-4 text-center" aria-hidden>{item.icon}</span><span>{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </nav>
+
+          <section className="mt-2 border-t border-br pt-3">
+            <button type="button" onClick={() => setProjectsExpanded((value) => !value)} className="flex w-full items-center justify-between px-4 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-dim hover:text-cy" aria-expanded={projectsExpanded}>
+              <span>Projects ({projects.length})</span><span>{projectsExpanded ? '\u25BE' : '\u25B8'}</span>
+            </button>
+            {projectsExpanded && (
+              <div className="px-3 pt-2">
+                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a project..." aria-label="Find a project" className="w-full rounded-[var(--r)] border border-br bg-[var(--c1)] px-2.5 py-2 font-mono text-[10px] text-tx outline-none placeholder:text-dim focus:border-cy" />
+                <div className="my-2 flex gap-1">
+                  {(['all', 'active', 'idle'] as const).map((item) => <button key={item} type="button" onClick={() => setScope(item)} className={`flex-1 rounded border px-1.5 py-1 font-mono text-[9px] capitalize ${scope === item ? 'border-cy bg-[var(--cy-glow)] text-cy' : 'border-br text-dim hover:text-sec'}`}>{item}</button>)}
+                </div>
+                <div className="space-y-0.5">
+                  {loading && <p className="px-2 py-2 font-mono text-[10px] text-dim">Loading projects...</p>}
+                  {!loading && filteredProjects.length === 0 && <p className="px-2 py-2 font-mono text-[10px] text-dim">No matching projects.</p>}
+                  {filteredProjects.map((project) => {
+                    const active = pathname === `/projects/${project.id}`;
+                    return (
+                      <Link key={project.id} href={`/projects/${project.id}`} className={`flex items-center gap-2 rounded px-2 py-1.5 font-mono text-[10px] transition ${active ? 'bg-[var(--cy-glow)] text-cy' : 'text-sec hover:bg-[var(--c2)] hover:text-tx'}`} title={`${project.name} / ${project.phase}`}>
+                        <span className={project.isRunning ? 'text-ok' : project.readyTasks + project.inProgressTasks > 0 ? 'text-warn' : 'text-dim'} aria-hidden>{'\u25CF'}</span>
+                        <span className="min-w-0 flex-1 truncate">{project.name}</span>
+                        {project.readyTasks + project.inProgressTasks > 0 && <span className="rounded bg-[var(--c2)] px-1 text-[9px] text-cy">{project.readyTasks + project.inProgressTasks}</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="border-t border-br bg-[var(--c1)] px-4 py-3 font-mono text-[9px] text-dim">
+          <div className="flex items-center justify-between"><span>AAHP Hub</span><span className="text-cy">v3.8.1</span></div>
+          <a href="https://github.com/homeofe/aahp-hub" target="_blank" rel="noopener noreferrer" className="mt-1 block truncate hover:text-cy">homeofe/aahp-hub {'\u2197'}</a>
+        </div>
+      </aside>
+    </>
   );
 }

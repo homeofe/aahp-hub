@@ -50,22 +50,22 @@ export function sessionsFilePath(): string {
   if (explicit && explicit.trim().length > 0) {
     return explicit;
   }
-  return join(homeBase(), '.aahp', 'sessions.json');
+  return join(/* turbopackIgnore: true */ homeBase(), '.aahp', 'sessions.json');
 }
 
 function logCandidates(repoPath: string, repoName: string): string[] {
   const stamp = new Date().toISOString().slice(0, 10);
   const home = homeBase();
   return [
-    join(repoPath, '.ai', 'logs', `${stamp}.log`),
-    join(home, '.aahp', 'logs', `${repoName}-${stamp}.log`),
+    join(/* turbopackIgnore: true */ repoPath, '.ai', 'logs', `${stamp}.log`),
+    join(/* turbopackIgnore: true */ home, '.aahp', 'logs', `${repoName}-${stamp}.log`),
   ];
 }
 
 async function readLastLogLine(repoPath: string, repoName: string): Promise<string> {
   for (const candidate of logCandidates(repoPath, repoName)) {
     try {
-      const content = await readFile(candidate, 'utf8');
+      const content = await readFile(/* turbopackIgnore: true */ candidate, 'utf8');
       const lines = content.split('\n').filter((l) => l.trim() && !l.startsWith('='));
       const last = lines[lines.length - 1] ?? '';
       return last.replace(/\s+/g, ' ').slice(0, 120);
@@ -100,7 +100,7 @@ export async function loadSessions(): Promise<SessionsResult> {
   const file = sessionsFilePath();
   let text: string;
   try {
-    text = await readFile(file, 'utf8');
+    text = await readFile(/* turbopackIgnore: true */ file, 'utf8');
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === 'ENOENT') {
@@ -189,12 +189,12 @@ export async function readControlPort(): Promise<number | null> {
 export async function watchTargets(): Promise<{ path: string; mtimeMs: number | null }[]> {
   const sessionsFile = sessionsFilePath();
   const home = homeBase();
-  const metricsFile = process.env['METRICS_FILE'] ?? join(home, '.aahp', 'metrics.jsonl');
+  const metricsFile = process.env['METRICS_FILE'] ?? join(/* turbopackIgnore: true */ home, '.aahp', 'metrics.jsonl');
   const targets = [sessionsFile, metricsFile];
   const result: { path: string; mtimeMs: number | null }[] = [];
   for (const p of targets) {
     try {
-      const s = await stat(p);
+      const s = await stat(/* turbopackIgnore: true */ p);
       result.push({ path: p, mtimeMs: s.mtimeMs });
     } catch {
       result.push({ path: p, mtimeMs: null });

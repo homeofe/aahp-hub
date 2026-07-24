@@ -46,7 +46,7 @@ describe('scanProjects', () => {
     makeProject('proj-a', {
       aahp_version: '3.0',
       project: 'proj-a',
-      github_repo: 'home/proj-a',
+      github_repo: 'https://github.com/home/proj-a.git',
       last_session: { agent: 'claude', timestamp: '2026-04-30T00:00:00Z', phase: 'done' },
       quick_context: 'all good',
       tasks: {

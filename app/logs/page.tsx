@@ -15,15 +15,15 @@ interface LogFile {
 }
 
 async function listLogs(): Promise<{ logs: LogFile[]; dir: string; error: string | null }> {
-  const dir = join(process.env['HOME'] ?? homedir(), '.aahp', 'logs');
+  const dir = join(/* turbopackIgnore: true */ process.env['HOME'] ?? homedir(), '.aahp', 'logs');
   try {
-    const entries = await readdir(dir, { withFileTypes: true });
+    const entries = await readdir(/* turbopackIgnore: true */ dir, { withFileTypes: true });
     const logs: LogFile[] = [];
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       try {
-        const path = join(dir, entry.name);
-        const s = await stat(path);
+        const path = join(/* turbopackIgnore: true */ dir, entry.name);
+        const s = await stat(/* turbopackIgnore: true */ path);
         logs.push({
           name: entry.name,
           path,

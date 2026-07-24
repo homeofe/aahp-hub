@@ -1,7 +1,6 @@
 import 'server-only';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { sep } from 'node:path';
 import { homedir } from 'node:os';
 
 export interface RunnerStatus {
@@ -34,8 +33,6 @@ const MODEL_PATTERN = /^[a-zA-Z0-9._-]{1,80}$/;
 const VERSION_TIMEOUT_MS = 6000;
 
 const IS_WINDOWS = process.platform === 'win32';
-const BINARY_NAME = 'aahp';
-const WINDOWS_EXTS = ['.cmd', '.bat', '.exe', ''];
 
 function isWindowsBatch(binary: string): boolean {
   return IS_WINDOWS && /\.(cmd|bat)$/i.test(binary);
@@ -49,11 +46,8 @@ function isWindowsBatch(binary: string): boolean {
  * args without escaping. The validated args (regex-checked upstream) cannot
  * contain shell metacharacters.
  */
-function spawnArgs(binary: string, argv: string[]): { cmd: string; args: string[] } {
-  if (isWindowsBatch(binary)) {
-    return { cmd: 'cmd.exe', args: ['/d', '/s', '/c', binary, ...argv] };
-  }
-  return { cmd: binary, args: argv };
+function windowsBatchArgs(binary: string, argv: string[]): string[] {
+  return ['/d', '/s', '/c', binary, ...argv];
 }
 
 /**
@@ -64,37 +58,8 @@ function spawnArgs(binary: string, argv: string[]): { cmd: string; args: string[
  * The empty `""` after `start` is required: otherwise Windows treats the
  * next quoted token as the window title and skips it as the executable.
  */
-function detachedSpawnArgs(binary: string, argv: string[]): { cmd: string; args: string[] } {
-  if (isWindowsBatch(binary)) {
-    return {
-      cmd: 'cmd.exe',
-      args: ['/d', '/s', '/c', 'start', '""', '/B', '/MIN', binary, ...argv],
-    };
-  }
-  return { cmd: binary, args: argv };
-}
-
-/**
- * Walk PATH and return the absolute path to the first matching aahp binary.
- * On Windows we test `aahp.cmd`, `aahp.bat`, `aahp.exe`, `aahp` in that order.
- * Returns null if not found.
- */
-function resolveBinaryFromPath(): string | null {
-  const pathVar = process.env['PATH'] ?? '';
-  if (!pathVar) return null;
-  const exts = IS_WINDOWS ? WINDOWS_EXTS : [''];
-  for (const dir of pathVar.split(delimiter)) {
-    if (!dir) continue;
-    for (const ext of exts) {
-      const candidate = join(dir, BINARY_NAME + ext);
-      try {
-        if (existsSync(candidate)) return candidate;
-      } catch {
-        // ignore inaccessible entries
-      }
-    }
-  }
-  return null;
+function detachedWindowsBatchArgs(binary: string, argv: string[]): string[] {
+  return ['/d', '/s', '/c', 'start', '""', '/B', '/MIN', binary, ...argv];
 }
 
 /**
@@ -103,13 +68,19 @@ function resolveBinaryFromPath(): string | null {
  */
 function tryBinary(binary: string): { version: string | null; error: string | null } {
   try {
-    const { cmd, args } = spawnArgs(binary, ['--version']);
-    const result = spawnSync(cmd, args, {
-      timeout: VERSION_TIMEOUT_MS,
-      encoding: 'utf8',
-      windowsHide: true,
-      shell: false,
-    });
+    const result = isWindowsBatch(binary)
+      ? spawnSync('cmd.exe', windowsBatchArgs(binary, ['--version']), {
+          timeout: VERSION_TIMEOUT_MS,
+          encoding: 'utf8',
+          windowsHide: true,
+          shell: false,
+        })
+      : spawnSync('aahp', ['--version'], {
+          timeout: VERSION_TIMEOUT_MS,
+          encoding: 'utf8',
+          windowsHide: true,
+          shell: false,
+        });
     if (result.error) {
       return { version: null, error: result.error.message };
     }
@@ -126,18 +97,8 @@ function tryBinary(binary: string): { version: string | null; error: string | nu
 export function detectRunner(): RunnerStatus {
   const errors: string[] = [];
 
-  // Strategy 1: resolve the absolute path on PATH and exec it directly.
-  const resolved = resolveBinaryFromPath();
-  if (resolved) {
-    const { version, error } = tryBinary(resolved);
-    if (version !== null) {
-      return { available: true, binary: resolved, version, error: null };
-    }
-    if (error) errors.push(`${resolved}: ${error}`);
-  }
-
-  // Strategy 2: rely on PATH resolution by the shell layer (legacy fallback).
   const fallbacks = IS_WINDOWS ? ['aahp.cmd', 'aahp'] : ['aahp'];
+  // Probe fixed command names and let the operating system resolve PATH.
   for (const candidate of fallbacks) {
     const { version, error } = tryBinary(candidate);
     if (version !== null) {
@@ -157,7 +118,7 @@ export function detectRunner(): RunnerStatus {
 export function logFileForRunStart(): string {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const home = process.env['HOME'] ?? homedir();
-  return join(home, '.aahp', 'logs', `hub-run-${stamp}.log`);
+  return [home.replace(/[\\/]$/, ''), '.aahp', 'logs', `hub-run-${stamp}.log`].join(sep);
 }
 
 function buildArgs(args: SpawnRunArgs): { argv: string[]; error: string | null } {
@@ -245,14 +206,16 @@ export function spawnRun(args: SpawnRunArgs): SpawnRunResult {
 
   const { argv } = buildArgs(args);
   const logFile = logFileForRunStart();
-  const { cmd, args: spawned } = detachedSpawnArgs(status.binary, argv);
   try {
-    const proc = spawn(cmd, spawned, {
+    const spawnOptions = {
       detached: true,
-      stdio: 'ignore',
+      stdio: 'ignore' as const,
       shell: false,
       windowsHide: true,
-    });
+    };
+    const proc = isWindowsBatch(status.binary)
+      ? spawn('cmd.exe', detachedWindowsBatchArgs(status.binary, argv), spawnOptions)
+      : spawn('aahp', argv, spawnOptions);
     proc.on('error', () => {
       // detached child emitted an error after spawn; nothing we can do here
     });

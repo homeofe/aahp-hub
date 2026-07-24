@@ -46,6 +46,18 @@ export interface ProjectMetrics {
   abortedRuns: number;
   tokens: TokenStats;
   tokens24h: TokenStats;
+  dailyRuns: number[];
+  recentEvents: RecentEvent[];
+}
+
+export interface RecentEvent {
+  timestamp: string;
+  repo: string;
+  taskId: string;
+  taskTitle: string;
+  success: boolean;
+  aborted: boolean;
+  backend: string;
 }
 
 export interface MetricsResult {
@@ -72,7 +84,7 @@ function metricsFilePath(): string {
     return explicit;
   }
   const home = process.env['HOME'] ?? homedir();
-  return join(home, '.aahp', 'metrics.jsonl');
+  return join(/* turbopackIgnore: true */ home, '.aahp', 'metrics.jsonl');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -176,6 +188,13 @@ function summarize(entries: RunMetric[], now: number): ProjectMetrics {
   const tokens = emptyTokenStats();
   const tokens24h = emptyTokenStats();
 
+  // Daily run counts for sparkline (last 7 days)
+  const dailyMap = new Map<string, number>();
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(now - i * DAY_MS).toISOString().slice(0, 10);
+    dailyMap.set(date, 0);
+  }
+
   for (const m of entries) {
     const ts = Date.parse(m.timestamp);
     if (Number.isNaN(ts)) continue;
@@ -191,10 +210,32 @@ function summarize(entries: RunMetric[], now: number): ProjectMetrics {
       lastTs = ts;
       lastEntry = m;
     }
+    // Accumulate daily counts
+    const day = m.timestamp.slice(0, 10);
+    if (dailyMap.has(day)) {
+      dailyMap.set(day, (dailyMap.get(day) ?? 0) + 1);
+    }
   }
 
   finaliseTokens(tokens);
   finaliseTokens(tokens24h);
+
+  const dailyRuns = [...dailyMap.values()];
+
+  // Recent events (last 10)
+  const recentEvents: RecentEvent[] = [...entries]
+    .filter((m) => !Number.isNaN(Date.parse(m.timestamp)))
+    .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
+    .slice(0, 10)
+    .map((m) => ({
+      timestamp: m.timestamp,
+      repo: m.repo,
+      taskId: m.taskId,
+      taskTitle: m.taskTitle,
+      success: m.success,
+      aborted: m.aborted ?? false,
+      backend: m.backend,
+    }));
 
   const total = entries.length;
   return {
@@ -210,6 +251,8 @@ function summarize(entries: RunMetric[], now: number): ProjectMetrics {
     abortedRuns,
     tokens,
     tokens24h,
+    dailyRuns,
+    recentEvents,
   };
 }
 
@@ -217,7 +260,7 @@ export async function loadMetrics(): Promise<MetricsResult> {
   const file = metricsFilePath();
   let text: string;
   try {
-    text = await readFile(file, 'utf8');
+    text = await readFile(/* turbopackIgnore: true */ file, 'utf8');
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === 'ENOENT') {

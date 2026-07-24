@@ -130,7 +130,7 @@ async function RecentRunsTable(): Promise<React.ReactElement> {
 
   const file =
     process.env['METRICS_FILE'] ??
-    join(process.env['HOME'] ?? homedir(), '.aahp', 'metrics.jsonl');
+    join(/* turbopackIgnore: true */ process.env['HOME'] ?? homedir(), '.aahp', 'metrics.jsonl');
 
   type Row = {
     timestamp: string;
@@ -147,7 +147,7 @@ async function RecentRunsTable(): Promise<React.ReactElement> {
 
   let text = '';
   try {
-    text = await readFile(file, 'utf8');
+    text = await readFile(/* turbopackIgnore: true */ file, 'utf8');
   } catch {
     return (
       <div className="rounded-[var(--r)] border border-br bg-c1 p-6 text-center text-dim text-[var(--fs-sm)]">

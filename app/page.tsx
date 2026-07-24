@@ -1,7 +1,7 @@
 import { scanProjects, type ProjectSummary } from '@/lib/manifest';
-import { formatDuration, formatTokens, type TokenStats } from '@/lib/metrics';
+import { formatTokens, type TokenStats } from '@/lib/metrics';
 import type { ActiveSession } from '@/lib/sessions';
-import { AbortButton } from './abort-button';
+import { computeHealth, type HealthScore } from '@/lib/health';
 import { AutoRefresh, LiveIndicator } from './auto-refresh';
 import { HeaderControls } from './header-controls';
 import { MorningBriefing } from './morning-briefing';
@@ -11,9 +11,16 @@ import { RelativeTime } from './timestamp';
 import { redactHome } from '@/lib/redact';
 import { loadToolingStatus } from '@/lib/tooling';
 import { ToolingPanel } from './tooling-panel';
+import { PhaseChart } from './phase-chart';
+import { AtRiskWidget } from './at-risk-widget';
+import { ActivityFeed, type ActivityEvent } from './activity-feed';
+import { SystemStatus } from './system-status';
+import { ProjectOverviewCard } from './project-overview-card';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+/* ── Helpers ────────────────────────────────────────────────── */
 
 function tokensRecorded(stats: TokenStats): boolean {
   return (
@@ -22,313 +29,14 @@ function tokensRecorded(stats: TokenStats): boolean {
   );
 }
 
-function cardStateClass(p: ProjectSummary): string {
-  if (p.activeSessions.length > 0) return 'is-running';
-  if (p.inProgressTasks > 0) return 'is-active-tasks';
-  if (p.readyTasks > 0) return 'is-active-tasks';
-  if (p.doneTasks > 0 && p.totalTasks === p.doneTasks) return 'is-clean';
-  return '';
-}
-
-function cardFilterAttr(p: ProjectSummary): string {
-  if (p.activeSessions.length > 0) return 'running';
-  if (p.inProgressTasks > 0 || p.readyTasks > 0) return 'has-tasks';
-  return 'idle';
-}
-
-function dotColor(p: ProjectSummary): string {
-  if (p.activeSessions.length > 0) return 'text-ok';
-  if (p.readyTasks > 0 || p.inProgressTasks > 0) return 'text-warn';
-  if (p.doneTasks > 0) return 'text-cy';
-  return 'text-dim';
-}
-
 function ProjectCard({
   project,
-  controlPortAvailable,
-  runnerAvailable,
+  health,
 }: {
   project: ProjectSummary;
-  controlPortAvailable: boolean;
-  runnerAvailable: boolean;
+  health: HealthScore;
 }): React.ReactElement {
-  const isRunning = project.activeSessions.length > 0;
-  const showTokens = project.metrics ? tokensRecorded(project.metrics.tokens) : false;
-  const startDisabled =
-    !runnerAvailable || isRunning || project.readyTasks + project.inProgressTasks === 0;
-  const startReason = !runnerAvailable
-    ? 'aahp not on PATH'
-    : isRunning
-      ? 'agent already running'
-      : project.readyTasks + project.inProgressTasks === 0
-        ? 'no ready or in_progress tasks'
-        : undefined;
-  const ghUrl = project.githubRepo ? `https://github.com/${project.githubRepo}` : null;
-  const lastLine =
-    project.activeSessions[0]?.lastLine ?? project.quickContext.split(/[\.\n]/)[0]?.trim() ?? '';
-
-  return (
-    <div
-      className={`akido-card ${cardStateClass(project)}`}
-      data-name={project.name}
-      data-filter={cardFilterAttr(project)}
-    >
-      {/* Header: dot + name + phase chip */}
-      <div className="flex items-center gap-2">
-        <span className={`text-[10px] ${dotColor(project)} shrink-0`} aria-hidden>
-          {isRunning ? '◉' : '●'}
-        </span>
-        <span
-          className="font-mono text-[var(--fs-base)] font-bold text-tx flex-1 truncate"
-          title={project.name}
-        >
-          {project.name}
-        </span>
-        <span className="akido-chip">{project.phase}</span>
-      </div>
-
-      {/* Commit-style row: agent + quick context first line */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-mono text-[var(--fs-xs)] text-cy bg-[var(--cy-soft)] border border-[rgba(48,172,236,0.08)] rounded-[var(--r)] px-1.5 opacity-80 shrink-0">
-          {project.lastAgent}
-        </span>
-        <span
-          className="font-mono text-[var(--fs-sm)] text-sec truncate flex-1"
-          title={project.quickContext}
-        >
-          {lastLine || '-'}
-        </span>
-      </div>
-
-      {/* Live session row when running */}
-      {isRunning && project.activeSessions[0] && (
-        <ActiveSessionRow
-          session={project.activeSessions[0]}
-          controlPortAvailable={controlPortAvailable}
-        />
-      )}
-
-      {/* Meta row: time + task badges */}
-      <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-br">
-        <span className="font-mono text-[var(--fs-xs)] text-dim">
-          {project.lastUpdated ? <RelativeTime iso={project.lastUpdated} /> : 'no timestamp'}
-        </span>
-        <div className="flex gap-1 items-center">
-          {project.inProgressTasks > 0 && (
-            <span className="font-mono text-[var(--fs-xs)] font-bold px-1.5 rounded-[var(--r)] bg-[var(--warn-soft)] text-warn border border-[rgba(255,187,0,0.3)]">
-              ~{project.inProgressTasks}
-            </span>
-          )}
-          {project.readyTasks > 0 && (
-            <span className="font-mono text-[var(--fs-xs)] font-bold px-1.5 rounded-[var(--r)] bg-[var(--cy-soft)] text-cy border border-[rgba(48,172,236,0.3)]">
-              {project.readyTasks} ready
-            </span>
-          )}
-          <span className="font-mono text-[var(--fs-xs)] font-bold px-1.5 rounded-[var(--r)] bg-[var(--ok-soft)] text-ok border border-[rgba(0,232,122,0.3)]">
-            {project.doneTasks}
-          </span>
-        </div>
-      </div>
-
-      {/* Active task list (compact) */}
-      {project.activeTasks.length > 0 && (
-        <ul className="text-[var(--fs-xs)] space-y-0.5">
-          {project.activeTasks.slice(0, 3).map((t, idx) => (
-            <li key={`${project.name}-${t.id}-${idx}`} className="flex items-center gap-2 min-w-0">
-              <span className="text-dim font-mono shrink-0">{t.id}</span>
-              <span className="truncate text-sec" title={t.title}>
-                {t.title}
-              </span>
-            </li>
-          ))}
-          {project.activeTasks.length > 3 && (
-            <li className="text-dim font-mono">+ {project.activeTasks.length - 3} more</li>
-          )}
-        </ul>
-      )}
-
-      {/* Metrics row: 24h/7d, success, avg duration */}
-      <div className="grid grid-cols-3 gap-2 text-[var(--fs-xs)]">
-        <Stat
-          label="24h / 7d"
-          value={
-            project.metrics
-              ? `${project.metrics.runs24h} / ${project.metrics.runs7d}`
-              : null
-          }
-        />
-        <Stat
-          label="success"
-          value={project.metrics ? `${project.metrics.successRate}%` : null}
-          tone={
-            project.metrics
-              ? project.metrics.successRate >= 80
-                ? 'ok'
-                : project.metrics.successRate >= 50
-                  ? 'warn'
-                  : 'er'
-              : 'neutral'
-          }
-        />
-        <Stat
-          label="avg"
-          value={project.metrics ? formatDuration(project.metrics.avgDurationMs) : null}
-        />
-      </div>
-
-      {/* Token row */}
-      <div className="grid grid-cols-3 gap-2 text-[var(--fs-xs)]">
-        <Stat
-          label="tokens i/o"
-          value={
-            showTokens
-              ? `${formatTokens(project.metrics!.tokens.inputTokens)} / ${formatTokens(project.metrics!.tokens.outputTokens)}`
-              : null
-          }
-        />
-        <Stat
-          label="cache"
-          value={showTokens ? `${project.metrics!.tokens.cacheHitRate}%` : null}
-          tone={
-            showTokens
-              ? project.metrics!.tokens.cacheHitRate >= 60
-                ? 'ok'
-                : project.metrics!.tokens.cacheHitRate >= 30
-                  ? 'warn'
-                  : 'neutral'
-              : 'neutral'
-          }
-        />
-        <Stat
-          label="aborted"
-          value={project.metrics ? String(project.metrics.abortedRuns) : null}
-          tone={project.metrics && project.metrics.abortedRuns > 0 ? 'er' : 'neutral'}
-        />
-      </div>
-
-      {/* Action button row */}
-      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-br">
-        {ghUrl ? (
-          <a className="akido-link-btn" href={ghUrl} target="_blank" rel="noopener noreferrer">
-            ↗ Repo
-          </a>
-        ) : (
-          <span className="akido-link-btn is-disabled" title="no github_repo in MANIFEST">
-            ↗ Repo
-          </span>
-        )}
-        {ghUrl && (
-          <>
-            <a
-              className="akido-link-btn"
-              href={`${ghUrl}/issues`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Issues
-            </a>
-            <a
-              className="akido-link-btn"
-              href={`${ghUrl}/pulls`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              PRs
-            </a>
-            <a
-              className="akido-link-btn"
-              href={`${ghUrl}/security/dependabot`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              🛡 Security
-            </a>
-          </>
-        )}
-        <RunButton
-          project={project.name}
-          label="▶ start"
-          variant="primary"
-          disabled={startDisabled}
-          disabledReason={startReason}
-          confirmMessage={`Start aahp run on ${project.name}?`}
-        />
-        {isRunning && project.activeSessions[0] && (
-          <AbortButton
-            repoName={project.activeSessions[0].repoName}
-            taskId={project.activeSessions[0].taskId}
-            disabled={!controlPortAvailable}
-            disabledReason="runner controlPort missing"
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ActiveSessionRow({
-  session,
-  controlPortAvailable,
-}: {
-  session: ActiveSession;
-  controlPortAvailable: boolean;
-}): React.ReactElement {
-  return (
-    <div className="rounded-[var(--r)] border border-[rgba(0,232,122,0.3)] bg-[var(--ok-soft)] px-2 py-1.5 text-[var(--fs-xs)] space-y-0.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-ok shrink-0">
-          {session.taskId} · {session.backend}
-        </span>
-        {session.startedAt && (
-          <span className="text-dim">
-            <RelativeTime iso={session.startedAt} />
-          </span>
-        )}
-      </div>
-      {session.taskTitle && (
-        <p className="text-sec truncate" title={session.taskTitle}>
-          {session.taskTitle}
-        </p>
-      )}
-      {session.lastLine && (
-        <p className="font-mono text-dim truncate" title={session.lastLine}>
-          &gt; {session.lastLine}
-        </p>
-      )}
-      {!controlPortAvailable && (
-        <p className="text-dim italic">controlPort missing - cannot abort</p>
-      )}
-    </div>
-  );
-}
-
-type StatTone = 'ok' | 'warn' | 'er' | 'neutral';
-
-function Stat({
-  label,
-  value,
-  tone = 'neutral',
-}: {
-  label: string;
-  value: string | null;
-  tone?: StatTone;
-}): React.ReactElement {
-  const toneClass =
-    value === null
-      ? 'text-dim'
-      : tone === 'ok'
-        ? 'text-ok'
-        : tone === 'warn'
-          ? 'text-warn'
-          : tone === 'er'
-            ? 'text-er'
-            : 'text-tx';
-  return (
-    <div>
-      <div className="text-dim text-[var(--fs-micro)] uppercase tracking-wider">{label}</div>
-      <div className={`font-mono ${toneClass}`}>{value ?? '-'}</div>
-    </div>
-  );
+  return <ProjectOverviewCard project={project} health={health} />;
 }
 
 function ControlCenter({
@@ -541,12 +249,80 @@ function EmptyState({
   );
 }
 
+/* ── Insights Sidebar ────────────────────────────────────────── */
+
+function InsightsPanel({
+  projects,
+  healthMap,
+  recentEvents,
+}: {
+  projects: ProjectSummary[];
+  healthMap: Map<string, HealthScore>;
+  recentEvents: ActivityEvent[];
+}): React.ReactElement {
+  const phaseMap = new Map<string, number>();
+  for (const p of projects) {
+    phaseMap.set(p.phase, (phaseMap.get(p.phase) ?? 0) + 1);
+  }
+  const phases = [...phaseMap.entries()].map(([phase, count]) => ({ phase, count }));
+
+  // At-risk projects (health < 60)
+  const atRisk = projects
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      health: healthMap.get(p.path) ?? { score: 0, grade: 'F' as const, factors: [] },
+      lastUpdated: p.lastUpdated,
+      readyTasks: p.readyTasks,
+      githubRepo: p.githubRepo,
+    }))
+    .filter((p) => p.health.score < 60)
+    .sort((a, b) => a.health.score - b.health.score);
+
+  return (
+    <aside className="space-y-3">
+      <div className="rounded-[var(--r)] border border-br bg-[var(--c1)] p-3.5">
+        <div className="font-mono text-[11px] font-bold text-sec uppercase tracking-wider mb-2">
+          {'\u25C6'} PHASE DISTRIBUTION
+        </div>
+        <PhaseChart phases={phases} />
+      </div>
+
+      {/* At-risk widget */}
+      <AtRiskWidget projects={atRisk} />
+
+      {/* Activity feed */}
+      <ActivityFeed events={recentEvents} />
+    </aside>
+  );
+}
+
+/* ── Page ────────────────────────────────────────────────────── */
+
 export default async function Page(): Promise<React.ReactElement> {
   const result = await scanProjects();
   const tooling = await loadToolingStatus();
   const totalReady = result.projects.reduce((s, p) => s + p.readyTasks, 0);
   const totalInProgress = result.projects.reduce((s, p) => s + p.inProgressTasks, 0);
   const totalDone = result.projects.reduce((s, p) => s + p.doneTasks, 0);
+
+  // Compute health scores
+  const healthMap = new Map<string, HealthScore>();
+  for (const p of result.projects) {
+    healthMap.set(p.path, computeHealth(p));
+  }
+
+  // Collect recent events from all project metrics
+  const recentEvents: ActivityEvent[] = [];
+  for (const p of result.projects) {
+    if (p.metrics?.recentEvents) {
+      for (const e of p.metrics.recentEvents) {
+        recentEvents.push(e);
+      }
+    }
+  }
+  recentEvents.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const topEvents = recentEvents.slice(0, 15);
 
   const topReadyTasks: Array<{
     repoName: string;
@@ -585,6 +361,9 @@ export default async function Page(): Promise<React.ReactElement> {
                   <span className="text-dim font-mono">{redactHome(result.rootDir)}</span>
                 </>
               )}
+              <span className="text-dim">·</span>
+              <kbd className="text-[9px] font-mono text-dim bg-[var(--c2)] border border-br rounded px-1 py-0.5">Ctrl+K</kbd>
+              <span className="text-dim text-[9px]">search</span>
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -593,19 +372,28 @@ export default async function Page(): Promise<React.ReactElement> {
           </div>
         </header>
 
-        <MorningBriefing
-          scannedAt={result.scannedAt}
-          totalProjects={result.projects.length}
-          totalReady={totalReady}
-          runningCount={result.activeSessions.length}
-          runnerAvailable={result.runner.available}
-          controlPort={result.controlPort}
-          metricsFile={result.metricsFile}
-          totals={result.totals}
-          topReadyTasks={topReadyTasks}
-        />
+        <details className="group rounded-[var(--r)] border border-br bg-[var(--c1)]">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-mono text-[var(--fs-xs)] text-sec hover:text-cy">
+            <span>Workspace intelligence and tooling</span>
+            <span className="transition group-open:rotate-180">{'\u25BE'}</span>
+          </summary>
+          <div className="space-y-4 border-t border-br p-4">
+            <MorningBriefing
+              scannedAt={result.scannedAt}
+              totalProjects={result.projects.length}
+              totalReady={totalReady}
+              runningCount={result.activeSessions.length}
+              runnerAvailable={result.runner.available}
+              controlPort={result.controlPort}
+              metricsFile={result.metricsFile}
+              totals={result.totals}
+              topReadyTasks={topReadyTasks}
+            />
 
-        <ToolingPanel tooling={tooling} />
+            <ToolingPanel tooling={tooling} />
+
+          </div>
+        </details>
 
         <ControlCenter
           runner={result.runner}
@@ -624,129 +412,95 @@ export default async function Page(): Promise<React.ReactElement> {
         {result.projects.length === 0 ? (
           <EmptyState rootDir={result.rootDir} hasErrors={result.errors.length > 0} />
         ) : (
-          <div
-            id="proj-grid"
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
-          >
-            {result.projects.map((p) => (
-              <ProjectCard
-                key={p.path}
-                project={p}
-                controlPortAvailable={result.controlPort !== null}
-                runnerAvailable={result.runner.available}
+          <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_18rem] gap-4">
+            {/* Main project grid */}
+            <div className="flex-1 min-w-0">
+              <div
+                id="proj-grid"
+                className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3"
+              >
+                {result.projects.map((p) => (
+                  <ProjectCard
+                    key={p.path}
+                    project={p}
+                    health={healthMap.get(p.path) ?? { score: 0, grade: 'F', factors: [] }}
+                  />
+                ))}
+              </div>
+            <div
+              id="project-filter-empty"
+              hidden
+              className="rounded-[var(--r)] border border-dashed border-br bg-[var(--c1)] p-8 text-center font-mono text-[var(--fs-sm)] text-dim"
+            >
+              No projects match the current filters.
+            </div>
+            </div>
+
+            {/* Insights stack below the grid, then beside it on wide screens. */}
+            <div className="min-w-0 [&>aside]:grid [&>aside]:grid-cols-1 lg:[&>aside]:grid-cols-3 2xl:[&>aside]:grid-cols-1">
+              <InsightsPanel
+                projects={result.projects}
+                healthMap={healthMap}
+                recentEvents={topEvents}
               />
-            ))}
+            </div>
           </div>
         )}
 
+        {/* Parse errors section - improved with preview */}
         {result.errors.length > 0 && (
           <section className="mt-6">
             <h2 className="akido-section-title text-er mb-2">
-              Parse errors ({result.errors.length})
+              {'\u26A0'} Manifest parse errors ({result.errors.length})
             </h2>
+            <p className="text-[var(--fs-xs)] text-dim mb-3">
+              These projects have malformed or unreadable MANIFEST.json files.
+              Fix the JSON syntax errors to include them in the dashboard.
+            </p>
             <ul className="space-y-2 text-[var(--fs-xs)]">
               {result.errors.map((e, idx) => (
                 <li
                   key={`${e.path}-${idx}`}
                   className="rounded-[var(--r)] border border-[rgba(255,64,96,0.4)] bg-[var(--er-soft)] p-3"
                 >
-                  <p className="font-mono text-sec truncate">{redactHome(e.path)}</p>
-                  <p className="text-er mt-1">{e.message}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-mono text-sec truncate flex-1">{redactHome(e.path)}</p>
+                    <span className="akido-chip text-er text-[9px]">parse error</span>
+                  </div>
+                  <p className="text-er mt-1 font-mono text-[var(--fs-xs)]">{e.message}</p>
                 </li>
               ))}
             </ul>
           </section>
         )}
 
-        <footer className="mt-8 pt-4 border-t border-br space-y-2 text-[var(--fs-xs)] text-dim">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              <span>{result.projects.length} projects</span>
-              {result.stubs.length > 0 && (
-                <span title={result.stubs.map((s) => redactHome(s.path)).join('\n')}>
-                  {result.stubs.length} stub{result.stubs.length === 1 ? '' : 's'} hidden
-                </span>
-              )}
-              <span title="Tasks marked in_progress in MANIFEST.json (manifest state, not live agents)">
-                {totalInProgress} in_progress (manifest)
-              </span>
-              <span>{totalReady} ready</span>
-              <span>{totalDone} done</span>
-            </div>
-            <a
-              href="https://github.com/homeofe/aahp-hub"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-cy font-mono"
-            >
-              homeofe/aahp-hub
-            </a>
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {result.metricsAvailable ? (
-              <>
-                <span>
-                  runner: <span className="text-sec">{result.totals.totalRuns} runs</span>
-                </span>
-                <span>
-                  24h: <span className="text-sec">{result.totals.runs24h}</span>
-                </span>
-                <span>
-                  7d: <span className="text-sec">{result.totals.runs7d}</span>
-                </span>
-                <span>
-                  success: <span className="text-sec">{result.totals.successRate}%</span>
-                </span>
-                {result.totals.abortedRuns > 0 && (
-                  <span>
-                    aborted: <span className="text-er">{result.totals.abortedRuns}</span>
-                  </span>
-                )}
-                {tokensRecorded(result.totals.tokens) && (
-                  <span>
-                    tokens:{' '}
-                    <span className="text-sec">
-                      {formatTokens(result.totals.tokens.inputTokens)} in /{' '}
-                      {formatTokens(result.totals.tokens.outputTokens)} out
-                    </span>{' '}
-                    <span className="text-dim">
-                      ({result.totals.tokens.cacheHitRate}% cache)
-                    </span>
-                  </span>
-                )}
-                <span className="text-dim font-mono">{redactHome(result.metricsFile)}</span>
-              </>
-            ) : result.metricsError ? (
-              <span className="text-er">metrics: {result.metricsError}</span>
-            ) : (
-              <span>
-                metrics: no <span className="font-mono">{redactHome(result.metricsFile)}</span> yet
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {result.sessionsError ? (
-              <span className="text-er">sessions: {result.sessionsError}</span>
-            ) : result.sessionsAvailable ? (
-              <span>
-                sessions: <span className="text-sec">{result.activeSessions.length} active</span>
-                <span className="text-dim font-mono"> {redactHome(result.sessionsFile)}</span>
-              </span>
-            ) : (
-              <span>
-                sessions: no <span className="font-mono">{redactHome(result.sessionsFile)}</span> yet
-              </span>
-            )}
-            <span>
-              control:{' '}
-              {result.controlPort ? (
-                <span className="text-ok font-mono">:{result.controlPort}</span>
-              ) : (
-                <span className="text-dim">not available</span>
-              )}
-            </span>
-          </div>
-        </footer>
+        {/* System status footer (collapsible) */}
+        <SystemStatus
+          projectCount={result.projects.length}
+          stubCount={result.stubs.length}
+          totalInProgress={totalInProgress}
+          totalReady={totalReady}
+          totalDone={totalDone}
+          metricsAvailable={result.metricsAvailable}
+          metricsError={result.metricsError}
+          metricsFile={redactHome(result.metricsFile)}
+          sessionsAvailable={result.sessionsAvailable}
+          sessionsError={result.sessionsError}
+          sessionsFile={redactHome(result.sessionsFile)}
+          activeSessionCount={result.activeSessions.length}
+          controlPort={result.controlPort}
+          totalRuns={result.totals.totalRuns}
+          runs24h={result.totals.runs24h}
+          runs7d={result.totals.runs7d}
+          successRate={result.totals.successRate}
+          abortedRuns={result.totals.abortedRuns}
+          tokensSummary={
+            tokensRecorded(result.totals.tokens)
+              ? `${formatTokens(result.totals.tokens.inputTokens)} in / ${formatTokens(result.totals.tokens.outputTokens)} out (${result.totals.tokens.cacheHitRate}% cache)`
+              : null
+          }
+          cacheSummary={null}
+        />
       </main>
     </>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { evaluateRepoPosture, type RepoPosture } from './posture';
+import { evaluateRepoPosture } from './posture';
 import type { ProjectSummary } from './manifest';
 
 vi.mock('node:fs/promises', async () => {
@@ -57,9 +57,11 @@ vi.mock('node:fs/promises', async () => {
 
 function createMockProject(name: string, path: string): ProjectSummary {
   return {
+    id: name,
     name,
     path,
     phase: 'idle',
+    tasks: [],
     activeTasks: [],
     readyTasks: 0,
     inProgressTasks: 0,

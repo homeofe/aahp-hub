@@ -2,6 +2,8 @@ import 'server-only';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { normalizeGitHubRepo } from './project-links';
 import { loadMetrics, type MetricsResult, type ProjectMetrics } from './metrics';
 import { detectRunner, type RunnerStatus } from './runner';
 import { loadSessions, type ActiveSession } from './sessions';
@@ -37,9 +39,18 @@ export interface RawManifest {
 }
 
 export interface ProjectSummary {
+  id: string;
   name: string;
   path: string;
   phase: string;
+  tasks: Array<{
+    id: string;
+    title: string;
+    status: TaskStatus;
+    priority?: string;
+    dependsOn?: string[];
+    githubIssue?: number;
+  }>;
   activeTasks: { id: string; title: string; status: TaskStatus }[];
   readyTasks: number;
   inProgressTasks: number;
@@ -89,7 +100,7 @@ function resolveRootDir(): string | null {
   if (!home) {
     return null;
   }
-  return join(home, 'Workspace');
+  return join(/* turbopackIgnore: true */ home, 'Workspace');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -113,13 +124,13 @@ async function findManifests(root: string): Promise<string[]> {
     }
     let entries;
     try {
-      entries = await readdir(dir, { withFileTypes: true });
+      entries = await readdir(/* turbopackIgnore: true */ dir, { withFileTypes: true });
     } catch {
       return;
     }
-    const candidate = join(dir, ...MANIFEST_REL_PATH);
+    const candidate = join(/* turbopackIgnore: true */ dir, ...MANIFEST_REL_PATH);
     try {
-      const s = await stat(candidate);
+      const s = await stat(/* turbopackIgnore: true */ candidate);
       if (s.isFile()) {
         found.push(candidate);
         return;
@@ -131,7 +142,7 @@ async function findManifests(root: string): Promise<string[]> {
       if (!entry.isDirectory()) continue;
       if (entry.name.startsWith('.')) continue;
       if (entry.name === 'node_modules') continue;
-      await walk(join(dir, entry.name), depth + 1);
+      await walk(join(/* turbopackIgnore: true */ dir, entry.name), depth + 1);
     }
   }
 
@@ -164,6 +175,10 @@ function normaliseTasks(raw: unknown): [string, ManifestTask][] {
           title: coerceString(obj['title']),
           status: typeof obj['status'] === 'string' ? obj['status'] : 'unknown',
           priority: typeof obj['priority'] === 'string' ? obj['priority'] : undefined,
+          depends_on: Array.isArray(obj['depends_on'])
+            ? obj['depends_on'].filter((item): item is string => typeof item === 'string')
+            : undefined,
+          github_issue: typeof obj['github_issue'] === 'number' ? obj['github_issue'] : undefined,
         },
       ]);
     }
@@ -180,6 +195,10 @@ function normaliseTasks(raw: unknown): [string, ManifestTask][] {
           title: coerceString(obj['title']),
           status: typeof obj['status'] === 'string' ? obj['status'] : 'unknown',
           priority: typeof obj['priority'] === 'string' ? obj['priority'] : undefined,
+          depends_on: Array.isArray(obj['depends_on'])
+            ? obj['depends_on'].filter((item): item is string => typeof item === 'string')
+            : undefined,
+          github_issue: typeof obj['github_issue'] === 'number' ? obj['github_issue'] : undefined,
         },
       ]);
     }
@@ -199,9 +218,17 @@ function summarize(
   const name = projectField ?? projectPath.split(/[\\/]/).pop() ?? 'unknown';
   const taskEntries = normaliseTasks(manifest.tasks);
 
-  const active = taskEntries
-    .filter(([, t]) => t.status === 'in_progress' || t.status === 'ready')
-    .map(([id, t]) => ({ id, title: t.title, status: t.status }));
+  const tasks = taskEntries.map(([id, task]) => ({
+    id,
+    title: task.title,
+    status: task.status,
+    priority: task.priority,
+    dependsOn: task.depends_on,
+    githubIssue: task.github_issue,
+  }));
+  const active = tasks
+    .filter((task) => task.status === 'in_progress' || task.status === 'ready')
+    .map(({ id, title, status }) => ({ id, title, status }));
 
   const ready = taskEntries.filter(([, t]) => t.status === 'ready').length;
   const inProgress = taskEntries.filter(([, t]) => t.status === 'in_progress').length;
@@ -212,13 +239,14 @@ function summarize(
   const lastAgent = lastSession ? coerceString(lastSession['agent'], 'unknown') : 'unknown';
   const lastUpdated = lastSession ? coerceString(lastSession['timestamp']) : '';
 
-  const githubRepo =
-    typeof manifest.github_repo === 'string' ? manifest.github_repo : null;
+  const githubRepo = normalizeGitHubRepo(manifest.github_repo);
 
   return {
+    id: createHash('sha256').update(projectPath).digest('hex').slice(0, 12),
     name,
     path: projectPath,
     phase,
+    tasks,
     activeTasks: active,
     readyTasks: ready,
     inProgressTasks: inProgress,
@@ -293,7 +321,7 @@ export async function scanProjects(): Promise<ScanResult> {
   const stubs: StubProject[] = [];
   for (const manifestPath of manifestPaths) {
     try {
-      const raw = await readFile(manifestPath, 'utf8');
+      const raw = await readFile(/* turbopackIgnore: true */ manifestPath, 'utf8');
       const manifest = parseManifest(raw);
       const summary = summarize(manifestPath, manifest, metrics.byProject, sessionsByProject);
       if (isStubProject(summary)) {

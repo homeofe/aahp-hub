@@ -47,12 +47,24 @@ export function MorningBriefing({
 }: MorningBriefingProps): React.ReactElement {
   const [collapsed, setCollapsed] = useState(false);
 
-  const todayStr = new Date().toLocaleDateString('en-US', {
+  const now = new Date(scannedAt);
+  const hour = now.getHours();
+
+  const todayStr = now.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+
+  const timeOfDay =
+    hour >= 5 && hour < 12
+      ? { greeting: 'Good morning', label: 'MORNING', icon: '☀' }
+      : hour >= 12 && hour < 17
+        ? { greeting: 'Good afternoon', label: 'AFTERNOON', icon: '🌤' }
+        : hour >= 17 && hour < 21
+          ? { greeting: 'Good evening', label: 'EVENING', icon: '🌆' }
+          : { greeting: 'Working late', label: 'NIGHT OWL', icon: '🌙' };
 
   const runnerActive = runnerAvailable && controlPort !== null;
   const allDisabled = !runnerAvailable || runnerActive || totalReady === 0;
@@ -70,14 +82,14 @@ export function MorningBriefing({
       <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[rgba(27,42,89,0.7)]">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-[rgba(0,180,216,0.12)] border border-[rgba(0,180,216,0.3)] flex items-center justify-center text-cy text-lg font-bold shadow-[0_0_12px_rgba(0,180,216,0.3)]">
-            ☀
+            {timeOfDay.icon}
           </div>
           <div>
             <div className="font-mono text-[10px] tracking-widest text-cy uppercase">
-              {'// EXECUTIVE MORNING BRIEFING'}
+              {`// EXECUTIVE ${timeOfDay.label} BRIEFING`}
             </div>
             <h2 className="text-lg font-bold text-tx tracking-tight">
-              Good morning! <span className="text-sec font-normal">· {todayStr}</span>
+              {timeOfDay.greeting}! <span className="text-sec font-normal">· {todayStr}</span>
             </h2>
           </div>
         </div>

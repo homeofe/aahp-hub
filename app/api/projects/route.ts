@@ -15,6 +15,7 @@ export async function GET(): Promise<Response> {
   try {
     const scan = await scanProjects();
     const projects = scan.projects.map((p) => ({
+      id: p.id,
       name: p.name,
       path: redactHome(p.path),
       phase: p.phase,

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToast } from './toast-provider';
 
 type RunState = 'idle' | 'pending' | 'started' | 'error';
 
@@ -27,6 +28,7 @@ export function RunButton({
   confirmMessage,
 }: RunButtonProps): React.ReactElement {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<RunState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -55,13 +57,17 @@ export function RunButton({
       } | null;
       if (response.ok && payload?.started) {
         setState('started');
+        toast(dryRun ? 'Dry run started' : `Run started${project ? ` for ${project}` : ''}`, 'success');
         startTransition(() => router.refresh());
         setTimeout(() => setState('idle'), 4000);
       } else {
+        const message = payload?.error ?? `HTTP ${response.status}`;
         setState('error');
-        setErrorMessage(payload?.error ?? `HTTP ${response.status}`);
+        setErrorMessage(message);
+        toast(`Unable to start run: ${message}`, 'error');
       }
     } catch (err) {
+      toast(`Unable to start run: ${err instanceof Error ? err.message : String(err)}`, 'error');
       setState('error');
       setErrorMessage(err instanceof Error ? err.message : String(err));
     }

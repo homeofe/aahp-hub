@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 export interface WorkspaceSettings {
   autoRefreshInterval: number; // in seconds, 0 = paused
@@ -58,14 +58,8 @@ export function SettingsModal({
   onClose: () => void;
   onSettingsSaved?: (settings: WorkspaceSettings) => void;
 }): React.ReactElement | null {
-  const [settings, setSettings] = useState<WorkspaceSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<WorkspaceSettings>(loadSettingsFromStorage);
   const [savedMessage, setSavedMessage] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setSettings(loadSettingsFromStorage());
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
