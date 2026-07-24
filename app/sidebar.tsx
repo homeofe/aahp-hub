@@ -45,51 +45,59 @@ export function Sidebar(): React.ReactElement {
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   return (
-    <aside className="w-[210px] shrink-0 border-r border-br bg-[var(--c1)] flex flex-col">
-      <div className="px-4 py-4 border-b border-br">
-        <h1
-          className="text-[var(--fs-base)] font-bold tracking-wide"
-          style={{ fontFamily: 'var(--font-mono)' }}
-        >
-          <span className="text-cy">AAHP</span>{' '}
-          <span className="text-tx">Hub</span>
-        </h1>
-        <p className="text-[var(--fs-micro)] text-dim mt-0.5 font-mono uppercase tracking-wider">
-          command center
-        </p>
+    <aside className="w-[220px] shrink-0 border-r border-br bg-[rgba(14,23,56,0.9)] backdrop-blur-md flex flex-col justify-between">
+      <div>
+        <div className="px-4 py-4 border-b border-br">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-cy shadow-[0_0_8px_rgba(0,180,216,0.8)]" />
+            <h1
+              className="text-[var(--fs-base)] font-bold tracking-wide text-tx"
+              style={{ fontFamily: 'var(--font-mono)' }}
+            >
+              <span className="text-cy">ELVATIS</span> Hub
+            </h1>
+          </div>
+          <p className="text-[9px] text-dim mt-1 font-mono uppercase tracking-widest leading-tight">
+            Executive Command Center
+          </p>
+        </div>
+
+        <nav className="py-3">
+          {SLOTS.map(({ groupBefore, item }) => (
+            <div key={item.href}>
+              {groupBefore && (
+                <div className="px-4 pt-4 pb-1 font-mono text-[9px] tracking-widest text-dim uppercase opacity-80">
+                  {`// ${groupBefore}`}
+                </div>
+              )}
+              <Link
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-2 text-[var(--fs-sm)] font-mono transition-all ${
+                  isActive(item.href)
+                    ? 'text-cy bg-[var(--cy-glow)] border-l-2 border-cy -ml-px font-bold shadow-[inset_4px_0_12px_rgba(0,180,216,0.15)]'
+                    : 'text-sec hover:text-tx hover:bg-[var(--c2)]'
+                }`}
+              >
+                <span className="text-[var(--fs-sm)] w-4 text-center" aria-hidden>
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </Link>
+            </div>
+          ))}
+        </nav>
       </div>
 
-      <nav className="flex-1 py-2">
-        {SLOTS.map(({ groupBefore, item }) => (
-          <div key={item.href}>
-            {groupBefore && (
-              <div className="px-4 pt-3 pb-1 font-mono text-[var(--fs-micro)] tracking-widest text-dim uppercase">
-                {`// ${groupBefore}`}
-              </div>
-            )}
-            <Link
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-2 text-[var(--fs-sm)] transition-colors ${
-                isActive(item.href)
-                  ? 'text-cy bg-[var(--cy-glow)] border-l-2 border-cy -ml-px'
-                  : 'text-sec hover:text-tx hover:bg-[var(--c2)]'
-              }`}
-            >
-              <span className="text-[var(--fs-sm)] w-4 text-center" aria-hidden>
-                {item.icon}
-              </span>
-              <span>{item.label}</span>
-            </Link>
-          </div>
-        ))}
-      </nav>
-
-      <div className="px-4 py-3 border-t border-br text-[var(--fs-micro)] font-mono text-dim">
+      <div className="px-4 py-3 border-t border-br text-[9px] font-mono text-dim space-y-1">
+        <div className="flex items-center justify-between text-sec">
+          <span>ELVATIS GROUP</span>
+          <span className="text-cy">v3.8.1</span>
+        </div>
         <a
           href="https://github.com/homeofe/aahp-hub"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-cy"
+          className="hover:text-cy block truncate"
         >
           homeofe/aahp-hub
         </a>

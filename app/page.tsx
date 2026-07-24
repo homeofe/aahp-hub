@@ -2,7 +2,9 @@ import { scanProjects, type ProjectSummary } from '@/lib/manifest';
 import { formatDuration, formatTokens, type TokenStats } from '@/lib/metrics';
 import type { ActiveSession } from '@/lib/sessions';
 import { AbortButton } from './abort-button';
-import { AutoRefresh, LiveIndicator, RefreshButton } from './auto-refresh';
+import { AutoRefresh, LiveIndicator } from './auto-refresh';
+import { HeaderControls } from './header-controls';
+import { MorningBriefing } from './morning-briefing';
 import { ProjectFilter } from './project-filter';
 import { RunButton } from './run-button';
 import { RelativeTime } from './timestamp';
@@ -535,6 +537,22 @@ export default async function Page(): Promise<React.ReactElement> {
   const totalInProgress = result.projects.reduce((s, p) => s + p.inProgressTasks, 0);
   const totalDone = result.projects.reduce((s, p) => s + p.doneTasks, 0);
 
+  const topReadyTasks: Array<{
+    repoName: string;
+    taskId: string;
+    title: string;
+  }> = [];
+
+  for (const p of result.projects) {
+    for (const t of p.activeTasks) {
+      topReadyTasks.push({
+        repoName: p.name,
+        taskId: t.id,
+        title: t.title,
+      });
+    }
+  }
+
   return (
     <>
       <AutoRefresh />
@@ -542,7 +560,7 @@ export default async function Page(): Promise<React.ReactElement> {
         <header className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-br">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-tx" style={{ fontFamily: 'var(--font-mono)' }}>
-              <span className="text-cy">AAHP</span> Hub
+              <span className="text-cy">ELVATIS</span> Executive Hub
             </h1>
             <p className="text-[var(--fs-xs)] text-dim mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
               <LiveIndicator />
@@ -560,9 +578,21 @@ export default async function Page(): Promise<React.ReactElement> {
           </div>
           <div className="flex items-center gap-3">
             <RunningCounter count={result.activeSessions.length} />
-            <RefreshButton />
+            <HeaderControls />
           </div>
         </header>
+
+        <MorningBriefing
+          scannedAt={result.scannedAt}
+          totalProjects={result.projects.length}
+          totalReady={totalReady}
+          runningCount={result.activeSessions.length}
+          runnerAvailable={result.runner.available}
+          controlPort={result.controlPort}
+          metricsFile={result.metricsFile}
+          totals={result.totals}
+          topReadyTasks={topReadyTasks}
+        />
 
         <ControlCenter
           runner={result.runner}

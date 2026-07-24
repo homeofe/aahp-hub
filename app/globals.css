@@ -1,45 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces (akido palette) */
-  --bg: #0d0d16;
-  --c1: #151522;
-  --c2: #1c1c2c;
-  --c3: #232336;
-  --c4: #2a2a3e;
+  /* Elvatis Navy Palette */
+  --bg: #070c1e;        /* Main Elvatis Deep Navy */
+  --c1: #0e1738;        /* Surface Card Level 1 */
+  --c2: #131f4a;        /* Surface Level 2 / Hover */
+  --c3: #1a285c;        /* Active / Selected Surface */
+  --c4: #233470;        /* Highlight Surface */
 
-  /* Borders */
-  --br: #252540;
-  --br2: #30acec;
-  --br-glow: rgba(48, 172, 236, 0.55);
+  /* Borders & Glows */
+  --br: #1b2a59;        /* Border color */
+  --br2: #00b4d8;       /* Accent border */
+  --br-glow: rgba(0, 180, 216, 0.45);
 
-  /* Text */
-  --tx: #f0f0ff;
-  --sec: #c8c8e0;
-  --dim: #9090b8;
+  /* Text Colors */
+  --tx: #f0f4fc;        /* Crisp Primary White/Ice */
+  --sec: #b0c2de;       /* Secondary Cool Slate */
+  --dim: #6b82a8;       /* Dimmed Muted Navy */
 
-  /* Status */
-  --ok: #00e87a;
-  --er: #ff4060;
-  --warn: #ffbb00;
+  /* Status Colors */
+  --ok: #0ea97d;        /* Vivid Emerald Green */
+  --er: #ff4d6d;        /* Vivid Coral Crimson */
+  --warn: #ffb703;      /* Glowing Amber Yellow */
 
-  /* Brand */
-  --bl: #4499ff;
-  --pu: #9966ff;
-  --cy: #38b8f8;
-  --cy-hover: #65ccff;
-  --cy-glow: rgba(56, 184, 248, 0.15);
-  --cy-soft: rgba(48, 172, 236, 0.07);
-  --cy-soft-hover: rgba(48, 172, 236, 0.12);
+  /* Elvatis Brand Accents */
+  --bl: #2a7fff;        /* Primary Electric Blue */
+  --pu: #6d47f0;        /* Deep Violet / Defense */
+  --cy: #00b4d8;        /* Vivid Cyan Accent */
+  --cy-hover: #38c8ec;
+  --cy-glow: rgba(0, 180, 216, 0.16);
+  --cy-soft: rgba(0, 180, 216, 0.08);
+  --cy-soft-hover: rgba(0, 180, 216, 0.15);
 
   /* Radii */
   --r: 8px;
-  --r-lg: 12px;
+  --r-lg: 14px;
 
   /* Status alpha helpers */
-  --ok-soft: rgba(0, 232, 122, 0.14);
-  --warn-soft: rgba(255, 187, 0, 0.14);
-  --er-soft: rgba(255, 64, 96, 0.14);
+  --ok-soft: rgba(14, 169, 125, 0.14);
+  --warn-soft: rgba(255, 183, 3, 0.14);
+  --er-soft: rgba(255, 77, 109, 0.14);
 
   /* Typography */
   --fs-micro: 9px;
@@ -76,39 +76,62 @@ body {
   color: var(--tx);
   font-family: var(--font-sans);
   font-size: var(--fs-base);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 180, 216, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(109, 71, 240, 0.05) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
 body {
   min-height: 100vh;
 }
 
-/* Akido-style reusable primitives */
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c3);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cy);
+}
+
+/* Elvatis-style Cards & UI Primitives */
 
 .akido-card {
-  background: var(--c1);
+  background: rgba(14, 23, 56, 0.75);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--br);
   border-left: 3px solid transparent;
-  border-radius: var(--r);
-  padding: 14px 16px;
-  transition: border 0.12s, box-shadow 0.12s, transform 0.12s;
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  transition: border 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 10px;
   position: relative;
 }
 .akido-card:hover {
-  border-color: rgba(48, 172, 236, 0.18);
+  border-color: rgba(0, 180, 216, 0.3);
   border-left-color: var(--cy);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 180, 216, 0.1);
+  transform: translateY(-1px);
 }
 .akido-card.is-running {
   border-left-color: var(--ok);
-  box-shadow: 0 0 0 1px rgba(0, 232, 122, 0.2);
+  box-shadow: 0 0 0 1px rgba(14, 169, 125, 0.25), 0 4px 16px rgba(14, 169, 125, 0.12);
 }
 .akido-card.is-active-tasks {
   border-left-color: var(--warn);
 }
 .akido-card.is-clean {
-  border-left-color: rgba(0, 232, 122, 0.35);
+  border-left-color: rgba(14, 169, 125, 0.4);
 }
 .akido-card.is-stale {
   border-left-color: var(--er);
@@ -117,36 +140,38 @@ body {
 .akido-chip {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: var(--r);
   background: var(--cy-soft);
   color: var(--cy);
-  border: 1px solid rgba(48, 172, 236, 0.12);
+  border: 1px solid rgba(0, 180, 216, 0.18);
   white-space: nowrap;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .akido-link-btn {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: var(--r);
   background: var(--cy-soft);
   color: var(--cy);
-  border: 1px solid rgba(48, 172, 236, 0.13);
+  border: 1px solid rgba(0, 180, 216, 0.2);
   cursor: pointer;
   text-decoration: none;
-  transition: 0.1s;
+  transition: all 0.15s ease;
   letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   white-space: nowrap;
 }
 .akido-link-btn:hover {
   background: var(--cy-soft-hover);
-  border-color: rgba(48, 172, 236, 0.28);
+  border-color: rgba(0, 180, 216, 0.4);
   color: var(--cy-hover);
+  box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);
 }
 .akido-link-btn[disabled],
 .akido-link-btn.is-disabled {
@@ -154,44 +179,47 @@ body {
   border-color: var(--br);
   color: var(--dim);
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.5;
+  box-shadow: none;
 }
 
 .akido-link-btn.tone-warn {
   background: var(--warn-soft);
-  border-color: rgba(255, 187, 0, 0.3);
+  border-color: rgba(255, 183, 3, 0.35);
   color: var(--warn);
 }
 .akido-link-btn.tone-warn:hover {
-  background: rgba(255, 187, 0, 0.22);
-  color: #ffd34d;
+  background: rgba(255, 183, 3, 0.25);
+  color: #ffca3a;
 }
 .akido-link-btn.tone-er {
   background: var(--er-soft);
-  border-color: rgba(255, 64, 96, 0.3);
+  border-color: rgba(255, 77, 109, 0.35);
   color: var(--er);
 }
 .akido-link-btn.tone-er:hover {
-  background: rgba(255, 64, 96, 0.22);
+  background: rgba(255, 77, 109, 0.25);
 }
 .akido-link-btn.tone-ok {
   background: var(--ok-soft);
-  border-color: rgba(0, 232, 122, 0.3);
+  border-color: rgba(14, 169, 125, 0.35);
   color: var(--ok);
 }
 .akido-link-btn.tone-ok:hover {
-  background: rgba(0, 232, 122, 0.22);
+  background: rgba(14, 169, 125, 0.25);
 }
 .akido-link-btn.is-primary {
   background: var(--cy);
-  color: var(--bg);
+  color: #040914;
   font-weight: 700;
   border-color: var(--cy);
+  box-shadow: 0 0 12px rgba(0, 180, 216, 0.3);
 }
 .akido-link-btn.is-primary:hover {
   background: var(--cy-hover);
   border-color: var(--cy-hover);
-  color: var(--bg);
+  color: #040914;
+  box-shadow: 0 0 18px rgba(0, 180, 216, 0.5);
 }
 
 .akido-section-title {
@@ -199,20 +227,20 @@ body {
   font-size: var(--fs-sm);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--dim);
+  letter-spacing: 0.14em;
+  color: var(--sec);
 }
 
 .akido-pill {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 999px;
   border: 1px solid var(--br);
-  background: transparent;
+  background: var(--c1);
   color: var(--sec);
   cursor: pointer;
-  transition: 0.12s;
+  transition: all 0.15s ease;
 }
 .akido-pill:hover {
   border-color: var(--cy);
@@ -223,4 +251,5 @@ body {
   border-color: var(--cy);
   color: var(--cy);
   background: var(--cy-glow);
+  box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);
 }
