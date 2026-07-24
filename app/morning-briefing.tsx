@@ -165,8 +165,24 @@ export function MorningBriefing({
                   disabledReason={runnerAvailable ? undefined : 'aahp binary not on PATH'}
                 />
                 <Link href="/posture" className="akido-link-btn text-[11px]">
-                  🛡 Security Posture
+                  🛡 Security & Posture
                 </Link>
+                <a
+                  href="https://github.com/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="akido-link-btn text-[11px]"
+                >
+                  🐙 GitHub Issues
+                </a>
+                <a
+                  href="https://github.com/pulls"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="akido-link-btn text-[11px]"
+                >
+                  🔀 GitHub PRs
+                </a>
               </div>
             </div>
 

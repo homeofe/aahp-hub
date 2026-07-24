@@ -233,6 +233,14 @@ function ProjectCard({
             >
               PRs
             </a>
+            <a
+              className="akido-link-btn"
+              href={`${ghUrl}/security/dependabot`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              🛡 Security
+            </a>
           </>
         )}
         <RunButton
