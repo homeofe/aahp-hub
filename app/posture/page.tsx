@@ -98,12 +98,12 @@ export default async function PosturePage(): Promise<React.ReactElement> {
                 </tr>
               </thead>
               <tbody>
-                {repos.map((r) => {
+                {repos.map((r, idx) => {
                   const isHealthy = !r.isStale && r.permissions.hasAccess && r.openAdvisories.total === 0 && r.supplyChainGuard.status === 'passed';
                   const ghUrl = r.githubRepo ? `https://github.com/${r.githubRepo}` : null;
 
                   return (
-                    <tr key={r.path} className="border-b border-br/50 hover:bg-[var(--c2)] transition-colors">
+                    <tr key={`${r.path}-${idx}`} className="border-b border-br/50 hover:bg-[var(--c2)] transition-colors">
                       {/* Health Indicator */}
                       <td className="py-2.5 px-3 whitespace-nowrap">
                         <span

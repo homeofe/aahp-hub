@@ -18,11 +18,11 @@ function daySparkline(daily: DailyBucket[]): React.ReactElement {
   const max = Math.max(...daily.map((d) => d.runs), 1);
   return (
     <div className="flex gap-1 items-end font-mono text-cy">
-      {daily.map((d) => {
+      {daily.map((d, idx) => {
         const tone = d.failures > d.successes ? 'text-er' : d.successes > 0 ? 'text-ok' : 'text-dim';
         return (
           <span
-            key={d.date}
+            key={`${d.date}-${idx}`}
             title={`${d.date}: ${d.runs} runs (${d.successes} ok, ${d.failures} fail, ${d.aborted} aborted, ${formatTokens(d.totalTokens)} tokens)`}
             className={`text-[16px] leading-none ${tone}`}
           >
@@ -132,8 +132,8 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
                     </tr>
                   </thead>
                   <tbody>
-                    {a.byBackend.map((b) => (
-                      <tr key={b.backend} className="border-b border-br/50">
+                    {a.byBackend.map((b, idx) => (
+                      <tr key={`${b.backend}-${idx}`} className="border-b border-br/50">
                         <td className="py-1.5 text-cy">{b.backend}</td>
                         <td className="py-1.5 text-right text-sec">{b.runs}</td>
                         <td
@@ -179,8 +179,8 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
                     </tr>
                   </thead>
                   <tbody>
-                    {a.byModel.map((m) => (
-                      <tr key={m.modelId} className="border-b border-br/50">
+                    {a.byModel.map((m, idx) => (
+                      <tr key={`${m.modelId}-${idx}`} className="border-b border-br/50">
                         <td
                           className="py-1.5 text-cy max-w-[180px] truncate"
                           title={m.modelId}
@@ -229,8 +229,8 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
                     </tr>
                   </thead>
                   <tbody>
-                    {a.topByCost.map((p) => (
-                      <tr key={p.repo} className="border-b border-br/50">
+                    {a.topByCost.map((p, idx) => (
+                      <tr key={`${p.repo}-${idx}`} className="border-b border-br/50">
                         <td className="py-1.5 text-cy max-w-[180px] truncate" title={p.repo}>
                           {p.repo}
                         </td>
@@ -266,9 +266,9 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
               <section className="rounded-[var(--r)] border border-br bg-c1 p-4">
                 <h3 className="akido-section-title mb-3">Recent failures</h3>
                 <ul className="space-y-1.5 text-[var(--fs-xs)] font-mono">
-                  {a.recentFailures.map((f) => (
+                  {a.recentFailures.map((f, idx) => (
                     <li
-                      key={`${f.timestamp}-${f.repo}-${f.taskId}`}
+                      key={`${f.timestamp}-${f.repo}-${f.taskId}-${idx}`}
                       className="flex items-center gap-2 min-w-0"
                     >
                       <span className={f.aborted ? 'text-warn' : 'text-er'}>

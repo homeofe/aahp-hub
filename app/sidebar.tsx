@@ -156,9 +156,9 @@ export function Sidebar(): React.ReactElement {
                       <p className="text-[10px] text-dim px-2 py-1">Loading projects...</p>
                     )}
 
-                    {filteredProjects.map((p) => (
+                    {filteredProjects.map((p, idx) => (
                       <button
-                        key={p.name}
+                        key={`${p.name}-${p.path}-${idx}`}
                         onClick={() => handleProjectClick(p.name)}
                         className="w-full text-left px-2 py-1 rounded hover:bg-[var(--c2)] transition-colors flex items-center justify-between gap-1 group"
                         title={`${p.name} (${p.readyTasks} ready, ${p.doneTasks} done)`}

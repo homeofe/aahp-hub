@@ -131,8 +131,8 @@ function ProjectCard({
       {/* Active task list (compact) */}
       {project.activeTasks.length > 0 && (
         <ul className="text-[var(--fs-xs)] space-y-0.5">
-          {project.activeTasks.slice(0, 3).map((t) => (
-            <li key={t.id} className="flex items-center gap-2 min-w-0">
+          {project.activeTasks.slice(0, 3).map((t, idx) => (
+            <li key={`${project.name}-${t.id}-${idx}`} className="flex items-center gap-2 min-w-0">
               <span className="text-dim font-mono shrink-0">{t.id}</span>
               <span className="truncate text-sec" title={t.title}>
                 {t.title}
@@ -640,9 +640,9 @@ export default async function Page(): Promise<React.ReactElement> {
               Parse errors ({result.errors.length})
             </h2>
             <ul className="space-y-2 text-[var(--fs-xs)]">
-              {result.errors.map((e) => (
+              {result.errors.map((e, idx) => (
                 <li
-                  key={e.path}
+                  key={`${e.path}-${idx}`}
                   className="rounded-[var(--r)] border border-[rgba(255,64,96,0.4)] bg-[var(--er-soft)] p-3"
                 >
                   <p className="font-mono text-sec truncate">{redactHome(e.path)}</p>
