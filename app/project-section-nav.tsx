@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 export const PROJECT_SECTIONS = [
   { id: 'overview', label: 'Overview', hint: 'Snapshot' },
+  { id: 'repository', label: 'Repository', hint: 'Issues and PRs' },
   { id: 'tasks', label: 'Tasks', hint: 'Execution queue' },
   { id: 'activity', label: 'Activity', hint: 'Runner history' },
   { id: 'health', label: 'Health', hint: 'Quality signals' },

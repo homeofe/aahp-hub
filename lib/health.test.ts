@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeHealth } from './health';
+import { UNKNOWN_REMOTE } from './git-remote';
 import type { ProjectSummary } from './manifest';
 
 function project(overrides: Partial<ProjectSummary> = {}): ProjectSummary {
@@ -20,6 +21,8 @@ function project(overrides: Partial<ProjectSummary> = {}): ProjectSummary {
     lastUpdated: new Date().toISOString(),
     recentlyActive: true,
     githubRepo: null,
+    remote: UNKNOWN_REMOTE,
+    handoffModifiedAt: null,
     metrics: null,
     activeSessions: [],
     worktreeCount: 1,

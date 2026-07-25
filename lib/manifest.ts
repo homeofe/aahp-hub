@@ -7,6 +7,8 @@ import { normalizeGitHubRepo } from './project-links';
 import { loadMetrics, type MetricsResult, type ProjectMetrics } from './metrics';
 import { detectRunner, type RunnerStatus } from './runner';
 import { loadSessions, type ActiveSession } from './sessions';
+import { readProjectRemote } from './checkout';
+import { UNKNOWN_REMOTE, type ProjectRemote } from './git-remote';
 
 export type TaskStatus = 'ready' | 'in_progress' | 'done' | 'blocked' | string;
 
@@ -61,7 +63,16 @@ export interface ProjectSummary {
   quickContextSource: 'manifest' | 'status' | 'none';
   lastUpdated: string;
   recentlyActive: boolean;
+  /** `github_repo` as declared in the manifest. May be absent or out of date. */
   githubRepo: string | null;
+  /**
+   * Where this checkout actually pushes, derived from its git origin remote.
+   * This is the authoritative mapping: directory names and manifest fields
+   * both drift, and several projects have moved off GitHub entirely.
+   */
+  remote: ProjectRemote;
+  /** mtime of the handoff MANIFEST.json: how fresh the local state is. */
+  handoffModifiedAt: string | null;
   metrics: ProjectMetrics | null;
   activeSessions: ActiveSession[];
   worktreeCount: number;
@@ -233,6 +244,15 @@ function extractStatusSummary(markdown: string): string | null {
   return summary.length > 0 ? summary : null;
 }
 
+async function handoffModifiedAt(manifestPath: string): Promise<string | null> {
+  try {
+    const info = await stat(/* turbopackIgnore: true */ manifestPath);
+    return new Date(info.mtimeMs).toISOString();
+  } catch {
+    return null;
+  }
+}
+
 async function loadStatusSummary(manifestPath: string): Promise<string | null> {
   const statusPath = join(
     /* turbopackIgnore: true */ dirname(manifestPath),
@@ -261,7 +281,7 @@ function canonicalProjectScore(project: ProjectSummary): number {
   const leaf = project.path.split(/[\\/]/).at(-1)?.toLowerCase() ?? '';
   const projectName = project.name.toLowerCase();
   let score = leaf === projectName ? 100 : 0;
-  if (project.githubRepo) score += 30;
+  if (project.remote.kind === 'github' || project.githubRepo) score += 30;
   if (hasMeaningfulContext(project.quickContext)) score += 20;
   if (project.totalTasks > 0) score += 10;
   if (WORKTREE_COPY_PATTERN.test(project.path)) score -= 200;
@@ -346,6 +366,8 @@ function summarize(
     lastUpdated,
     recentlyActive: isRecentlyActive(lastUpdated, projectMetrics),
     githubRepo,
+    remote: UNKNOWN_REMOTE,
+    handoffModifiedAt: null,
     metrics: projectMetrics,
     activeSessions: sessionsByProject.get(name) ?? [],
     worktreeCount: 1,
@@ -416,6 +438,8 @@ export async function scanProjects(): Promise<ScanResult> {
       const raw = await readFile(/* turbopackIgnore: true */ manifestPath, 'utf8');
       const manifest = parseManifest(raw);
       const summary = summarize(manifestPath, manifest, metrics.byProject, sessionsByProject);
+      summary.handoffModifiedAt = await handoffModifiedAt(manifestPath);
+      summary.remote = await readProjectRemote(summary.path, manifest.github_repo);
       if (!hasMeaningfulContext(summary.quickContext)) {
         const statusSummary = await loadStatusSummary(manifestPath);
         summary.quickContext = statusSummary ?? '';
