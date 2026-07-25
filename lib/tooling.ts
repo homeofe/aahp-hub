@@ -105,7 +105,7 @@ export async function loadToolingStatus(): Promise<ToolingInfo> {
 
   const mcpServers: MCPServerInfo[] = [
     { name: 'akido-mcp', toolsCount: 99, status: 'active', category: 'Executive Command & Home Automation' },
-    { name: 'openclaw-runner', toolsCount: 14, status: 'active', category: 'Agent Swarm Execution' },
+    { name: 'agent-runner', toolsCount: 14, status: 'active', category: 'Agent Swarm Execution' },
     { name: 'git-sync-engine', toolsCount: 8, status: 'active', category: 'Repository Synchronization' },
     { name: 'docker-control', toolsCount: 6, status: 'active', category: 'Container Orchestration' },
     { name: 'security-posture', toolsCount: 5, status: 'active', category: 'Supply Chain Guard & Vulnerabilities' },
