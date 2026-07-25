@@ -32,6 +32,10 @@ aahp-orchestrator (VS Code extension), aahp-cron (scheduling), and this repo
 | AAHP framework | `.claude/`, `.llm/` |
 | Filesystem scanner | `lib/manifest.ts` |
 | Dashboard page | `app/page.tsx` |
+| Fleet board (main view) | `app/fleet-board.tsx`, `app/api/fleet/route.ts` |
+| Repository mapping | `lib/git-remote.ts` |
+| Local checkout drift | `lib/checkout.ts` |
+| GitHub data via `gh` | `lib/github-stats.ts`, `lib/github-cache.ts` |
 
 ## Session start
 
@@ -47,7 +51,12 @@ aahp-orchestrator (VS Code extension), aahp-cron (scheduling), and this repo
 - No em dashes anywhere in code, commits, or docs
 - `npm run build` must pass before committing
 - Never write secrets into source files
-- The hub is read-only: never modify manifests in scanned projects
+- Never introduce a GitHub token environment variable. Repository access goes
+  through the `gh` CLI, which supplies its own credentials
+- The hub is read-only: never modify manifests in scanned projects, never run
+  `git fetch`, `git pull` or any writing git command against them
+- Never render a fabricated value. "Not applicable", "not fetched yet" and a
+  real zero are three different states and must stay distinguishable
 - Use `process.env['KEY']` not `process.env.KEY`
 - Server-only modules import `'server-only'` at the top
 

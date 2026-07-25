@@ -1,3 +1,4 @@
+> Note (2026-07-25, claude-opus-5): Turned the dashboard into a daily project overview. The card grid is now a compact fleet board (app/fleet-board.tsx) with per-project open/closed issues, open/merged/closed-without-merge pull requests, open Dependabot alerts and local checkout drift. Repository data comes from the `gh` CLI through one aliased GraphQL document per batch (lib/github-stats.ts), TTL cached and persisted (lib/github-cache.ts); no GITHUB_TOKEN variable exists anywhere in the repo. Projects are mapped to repositories by their git origin remote (lib/git-remote.ts, lib/checkout.ts), so directory-name drift and the forge.internal.example Forgejo migrations resolve correctly and render as not-applicable instead of zeros. REMOVED lib/tooling.ts and app/tooling-panel.tsx: they rendered a hardcoded list of eleven models with invented online/standby statuses on a dashboard used for decisions. app/project-filter.tsx and app/project-overview-card.tsx were folded into the fleet board.
 > Note (2026-07-25, claude-opus-4-8): Test fixtures, the multi-model rule doc and the routing doc now use neutral placeholder identifiers (acme/sample-service style) instead of environment-specific names, so the public tree carries no deployment-specific vocabulary. Behaviour is unchanged; all 195 tests still pass.
 
 > Note (2026-07-19, claude-opus-4-8): Aligned the AAHP v3.8.0 conformance PR (#13) with its code review. Corrected the false "GitHub Actions is OFF org-wide (cost sweep)" claim in aahp-verify.yml and the PR body (homeofe Actions is ON). Restored the MANIFEST "project" field to "aahp-hub" (the CLI regen had rewritten it to the temp working-directory name). Rejected the two Gemini inline suggestions (GROUNDING.md Section 5 schema wording, WORKFLOW.md install-hooks command) because they target canonical AAHP v3.8.0 template files that are copied verbatim from @elvatis_com/aahp; editing them per-repo would fork the canonical and churn on the next tooling run. Re-ran the CLI manifest regen and verify (Layer 1 checksums refreshed).
@@ -44,6 +45,16 @@ to the runner's localhost endpoint. The hub stays a thin renderer: no DB,
 no direct cross-host networking. Mutating routes are now gated by a
 same-origin check plus an optional shared-secret token, and the server
 binds loopback only.
+
+The overview is a per-project fleet board. Local handoff state renders
+immediately; repository counts (issues, pull requests split into
+open/merged/closed-without-merge, open Dependabot alerts) and local
+checkout drift arrive asynchronously from `/api/fleet`. Repository access
+runs through the `gh` CLI, which supplies its own credentials, so the hub
+holds no token and defines no token environment variable. Every value
+distinguishes not-applicable, not-yet-fetched and a real zero, and a failed
+refresh keeps the last good values with a staleness marker instead of
+falling back to zeros.
 <!-- /SECTION: summary -->
 
 ---
@@ -53,10 +64,11 @@ binds loopback only.
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `npm install` | (Verified) | next 16.2.4, vitest 4.1.5 |
-| `npm run build` | (Verified) | Clean - 2026-04-30 |
-| `npm run lint` | (Verified) | Clean - 2026-04-30 |
-| `npm run test` | (Verified) | 39 tests across 3 suites pass - 2026-04-30 |
+| `npm install` | (Verified) | next 16.2.11, vitest 4.1.5 |
+| `npm run build` | (Verified) | Clean - 2026-07-25 (no NFT trace warning) |
+| `npm run lint` | (Verified) | Clean - 2026-07-25 |
+| `npm run test` | (Verified) | 195 tests across 14 suites pass - 2026-07-25 |
+| `/api/fleet` live smoke | (Verified) | 2026-07-25 on port 3457: 49/49 repositories answered, 2 rate-limit points, 34 active / 15 archived / 4 not-applicable |
 | `/api/stream` smoke test | (Verified) | hello + change events fire on sessions.json mtime |
 | Cross-platform paths | (Verified) | Code uses `homedir()` and `path.join`; `.env.example` documents macOS/Linux/Windows examples |
 <!-- /SECTION: build_health -->
@@ -76,7 +88,16 @@ binds loopback only.
 | Dashboard page | `app/page.tsx` | (Verified) | Force-dynamic; token row, abort button per session, control footer chip |
 | Abort button | `app/abort-button.tsx` | (Verified) | Confirm dialog, pending/aborted/error states, retry |
 | Auto-refresh / Live indicator | `app/auto-refresh.tsx` | (Verified) | EventSource + 30s polling fallback |
-| Tests | `lib/*.test.ts` | (Verified) | 39 tests covering tokens, controlPort, aborted flag, schema variants |
+| Remote mapping | `lib/git-remote.ts` | (Verified) | Pure parsers for origin URLs and .git/config; strict owner/name validation before any GraphQL use |
+| Checkout state | `lib/checkout.ts` | (Verified) | Reads .git/config off disk, `git --no-optional-locks status --porcelain=v2`, FETCH_HEAD mtime; never fetches or writes |
+| Process runner | `lib/exec.ts` | (Verified) | argv-array spawn, no shell, stdin + timeout + output cap |
+| GitHub data layer | `lib/github-stats.ts` | (Verified) | One aliased GraphQL document per batch through `gh api graphql --input -`; OPEN/CLOSED/MERGED PRs queried separately; injectable runner for offline tests |
+| GitHub cache | `lib/github-cache.ts` | (Verified) | TTL + disk persistence + in-flight dedup; keeps last good values on failure |
+| Fleet join | `lib/fleet.ts` | (Verified) | Joins handoff, checkout and GitHub into one row per project with attention ranking |
+| Fleet API | `app/api/fleet/route.ts` | (Verified) | GET, `?refresh=1` forces a live query |
+| Fleet board | `app/fleet-board.tsx` | (Verified) | Client component; segments, filters, sorting, freshness bar, three-state cells |
+| Project repository panel | `app/project-repository-panel.tsx` | (Verified) | Same data on the project page |
+| Tests | `lib/*.test.ts` | (Verified) | 195 tests: remote mapping, merged-vs-closed handling, cache/TTL, gh degradation, partial GraphQL errors |
 <!-- /SECTION: components -->
 
 ---
@@ -107,13 +128,25 @@ binds loopback only.
 | Auth | (deferred) | Internal tool only, intentionally none |
 | Multi-host runners | LOW | Abort proxy is localhost-only by design |
 | Token cost in $ | LOW | Tokens are tracked; pricing table is a separate concern |
-| Detail page | LOW | Cards are concise enough for now |
+| Non-GitHub forges | LOW | Projects on the self-hosted Forgejo (forge.internal.example) render as not-applicable. Wiring the Forgejo API would need its own credential story; deliberately out of scope here. |
+| CI status per project | LOW | The board covers issues, pull requests, alerts and drift; workflow run status is a natural next column |
 <!-- /SECTION: what_is_missing -->
 
 ---
 
 <!-- SECTION: resolved_this_session -->
-## Resolved This Session (2026-04-30)
+## Resolved This Session (2026-07-25)
+
+| Item | Resolution |
+|------|-----------|
+| Thin overview | Card grid replaced by a compact fleet board with repository and checkout columns, sorted by what needs attention |
+| Fabricated tooling panel | `lib/tooling.ts` and `app/tooling-panel.tsx` deleted. They rendered eleven hardcoded models with invented online/standby statuses; nothing measured them |
+| Repository mapping | Derived from the git origin remote, not the directory name. Forgejo-migrated and remote-less projects render as not-applicable |
+| Merged vs closed pull requests | OPEN, MERGED and CLOSED queried and shown as three separate numbers, with the semantics stated in the UI |
+| Credentials | `gh` CLI only. No token env var, no PAT prompt, no token in memory |
+| Staleness | Local checkout drift, GitHub fetch time and handoff mtime are all first-class columns |
+
+### Earlier session (2026-04-30)
 
 | Item | Resolution |
 |------|-----------|
@@ -121,7 +154,7 @@ binds loopback only.
 | T-004 abort | `app/api/abort/route.ts` proxies to runner's `/abort`; `lib/sessions.ts` exposes `controlPort`; `AbortButton` client component handles confirm + state machine |
 | Aborted-run distinction | `RunMetric.aborted` plumbed through; counted separately on cards and in the footer |
 | Cross-platform `.env.example` | Replaced macOS-only example with explicit macOS/Linux/Windows examples plus a forward-slash variant note |
-| Local `.env.local` | Created for the user's Windows setup (`C:\Users\root\Workspace` etc.); gitignored |
+| Local `.env.local` | Created for the user's Windows setup (`C:\Users\dev\Workspace` etc.); gitignored |
 | Test coverage | +12 tests for token aggregation, format helpers, controlPort parsing, aborted runs |
 <!-- /SECTION: resolved_this_session -->
 

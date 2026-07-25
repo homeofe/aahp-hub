@@ -25,7 +25,12 @@ export async function GET(): Promise<Response> {
       totalTasks: p.totalTasks,
       isRunning: p.activeSessions.length > 0,
       recentlyActive: p.recentlyActive,
-      githubRepo: p.githubRepo,
+      // The git origin remote wins over the manifest declaration: directory
+      // names and manifest fields both drift, remotes do not.
+      githubRepo: p.remote.repo ?? p.githubRepo,
+      remoteKind: p.remote.kind,
+      remoteHost: p.remote.host,
+      handoffModifiedAt: p.handoffModifiedAt,
       worktreeCount: p.worktreeCount,
     }));
 

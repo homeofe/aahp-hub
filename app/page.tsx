@@ -3,19 +3,16 @@ import { formatTokens, type TokenStats } from '@/lib/metrics';
 import type { ActiveSession } from '@/lib/sessions';
 import { computeHealth, type HealthScore } from '@/lib/health';
 import { AutoRefresh, LiveIndicator } from './auto-refresh';
+import { FleetBoard, type FleetSeedProject } from './fleet-board';
 import { HeaderControls } from './header-controls';
 import { MorningBriefing } from './morning-briefing';
-import { ProjectFilter } from './project-filter';
 import { RunButton } from './run-button';
 import { RelativeTime } from './timestamp';
 import { redactHome } from '@/lib/redact';
-import { loadToolingStatus } from '@/lib/tooling';
-import { ToolingPanel } from './tooling-panel';
 import { PhaseChart } from './phase-chart';
 import { AtRiskWidget } from './at-risk-widget';
 import { ActivityFeed, type ActivityEvent } from './activity-feed';
 import { SystemStatus } from './system-status';
-import { ProjectOverviewCard } from './project-overview-card';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -29,14 +26,30 @@ function tokensRecorded(stats: TokenStats): boolean {
   );
 }
 
-function ProjectCard({
-  project,
-  health,
-}: {
-  project: ProjectSummary;
-  health: HealthScore;
-}): React.ReactElement {
-  return <ProjectOverviewCard project={project} health={health} />;
+/**
+ * Everything the fleet board can render from local files alone. The GitHub and
+ * checkout columns are fetched by the board itself so the handoff view is never
+ * blocked on the network.
+ */
+function toSeed(project: ProjectSummary, health: HealthScore): FleetSeedProject {
+  return {
+    id: project.id,
+    name: project.name,
+    phase: project.phase,
+    lastAgent: project.lastAgent,
+    readyTasks: project.readyTasks,
+    inProgressTasks: project.inProgressTasks,
+    doneTasks: project.doneTasks,
+    totalTasks: project.totalTasks,
+    isRunning: project.activeSessions.length > 0,
+    recentlyActive: project.recentlyActive,
+    lastUpdated: project.lastUpdated,
+    handoffModifiedAt: project.handoffModifiedAt,
+    worktreeCount: project.worktreeCount,
+    health: health.score,
+    grade: health.grade,
+    remote: project.remote,
+  };
 }
 
 function ControlCenter({
@@ -301,7 +314,6 @@ function InsightsPanel({
 
 export default async function Page(): Promise<React.ReactElement> {
   const result = await scanProjects();
-  const tooling = await loadToolingStatus();
   const totalReady = result.projects.reduce((s, p) => s + p.readyTasks, 0);
   const totalInProgress = result.projects.reduce((s, p) => s + p.inProgressTasks, 0);
   const totalDone = result.projects.reduce((s, p) => s + p.doneTasks, 0);
@@ -374,7 +386,7 @@ export default async function Page(): Promise<React.ReactElement> {
 
         <details className="group rounded-[var(--r)] border border-br bg-[var(--c1)]">
           <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-mono text-[var(--fs-xs)] text-sec hover:text-cy">
-            <span>Workspace intelligence and tooling</span>
+            <span>Morning briefing</span>
             <span className="transition group-open:rotate-180">{'\u25BE'}</span>
           </summary>
           <div className="space-y-4 border-t border-br p-4">
@@ -389,9 +401,6 @@ export default async function Page(): Promise<React.ReactElement> {
               totals={result.totals}
               topReadyTasks={topReadyTasks}
             />
-
-            <ToolingPanel tooling={tooling} />
-
           </div>
         </details>
 
@@ -407,37 +416,18 @@ export default async function Page(): Promise<React.ReactElement> {
           <OrphanSessionsBanner sessions={result.orphanSessions} />
         )}
 
-        {result.projects.length > 0 && <ProjectFilter />}
-
         {result.projects.length === 0 ? (
           <EmptyState rootDir={result.rootDir} hasErrors={result.errors.length > 0} />
         ) : (
-          <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_18rem] gap-4">
-            {/* Main project grid */}
-            <div className="flex-1 min-w-0">
-              <div
-                id="proj-grid"
-                className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3"
-              >
-                {result.projects.map((p) => (
-                  <ProjectCard
-                    key={p.path}
-                    project={p}
-                    health={healthMap.get(p.path) ?? { score: 0, grade: 'F', factors: [] }}
-                  />
-                ))}
-              </div>
-            <div
-              id="project-filter-empty"
-              hidden
-              className="rounded-[var(--r)] border border-dashed border-br bg-[var(--c1)] p-8 text-center font-mono text-[var(--fs-sm)] text-dim"
-            >
-              No projects match the current filters.
-            </div>
-            </div>
+          <div className="space-y-4">
+            <FleetBoard
+              projects={result.projects.map((p) =>
+                toSeed(p, healthMap.get(p.path) ?? { score: 0, grade: 'F', factors: [] }),
+              )}
+              scannedAt={result.scannedAt}
+            />
 
-            {/* Insights stack below the grid, then beside it on wide screens. */}
-            <div className="min-w-0 [&>aside]:grid [&>aside]:grid-cols-1 lg:[&>aside]:grid-cols-3 2xl:[&>aside]:grid-cols-1">
+            <div className="min-w-0 [&>aside]:grid [&>aside]:grid-cols-1 lg:[&>aside]:grid-cols-3">
               <InsightsPanel
                 projects={result.projects}
                 healthMap={healthMap}

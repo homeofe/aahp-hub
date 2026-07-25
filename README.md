@@ -23,22 +23,73 @@ that gap.
 
 ## What the dashboard shows
 
-For each project found under `ROOT_DIR`:
+The overview is one compact row per project, sorted so the projects that need
+something rise to the top.
+
+Local handoff state (read from disk, rendered immediately):
 
 - Project name and phase (`research`, `architect`, `implement`, `review`, `done`)
 - A pulsing green dot when an agent is currently running, with the live task
   ID, backend, started-at, the last log line being streamed, and an Abort
   button that signals the runner's control endpoint
-- Active task counts (in progress, ready, done)
-- Up to three active task titles with their IDs
-- Runner activity: runs in the last 24h and 7d, success rate, average duration
-  (from the `aahp-runner` JSONL metrics)
+- Task counts (ready, in progress, done) and a completion percentage
+- Health score and grade
+- When `.ai/handoff/MANIFEST.json` was last modified
+- Runner activity on the project page: runs in the last 24h and 7d, success
+  rate, average duration (from the `aahp-runner` JSONL metrics)
 - LLM token spend per project: input / output totals, prompt-cache hit rate,
   number of aborted runs (when the runner records token data; the SDK and
   Copilot backends populate it, CLI backends do not)
-- The last agent that touched the project and its `quick_context` summary
-- A relative timestamp ("3m ago") of the last session
-- A link to the project's GitHub repo when the manifest carries one
+
+Repository state (fetched separately, see below):
+
+- Open and closed issues
+- Open, merged and closed-without-merge pull requests, counted separately
+- Open Dependabot alerts
+- Whether the local checkout has drifted from its remote
+
+### Repository columns
+
+Each project is mapped to a repository through its **git origin remote**, not
+its directory name. Several workspace directories differ from the repository
+they track, and some projects were migrated to a self-hosted forge and no
+longer exist on GitHub at all. A project with no GitHub origin renders as
+`n/a`, never as an error and never as a zero.
+
+Counts come from a single aliased GraphQL query per batch of repositories,
+executed through the **`gh` CLI**, which supplies its own stored credentials.
+The hub reads no token, defines no token environment variable, and never
+prompts you to create a personal access token. If `gh` is missing or not
+signed in, the repository columns say so and the rest of the dashboard keeps
+working.
+
+Three pull request states are queried and shown separately, because GitHub's
+`CLOSED` state **excludes** merged pull requests. A repository with thirty
+merged pull requests and none rejected legitimately reports zero closed, and
+showing only "closed" would claim that nothing ever shipped.
+
+Results are cached with a TTL (5 minutes by default) and persisted to disk, so
+a page refresh does not re-run the query. When a refresh fails, the previous
+values stay on screen with a visible staleness marker rather than collapsing
+to zeros.
+
+### Checkout drift
+
+Every handoff-derived number describes a local working copy. If that copy is
+twenty commits behind its remote, the whole row describes yesterday's
+repository, so drift is a first-class column.
+
+Drift is measured against the remote-tracking branch as of the last `git
+fetch`. **The hub never fetches, never writes and never modifies the projects
+it scans**; the age of the last fetch is shown alongside the counts so you can
+tell how much to trust them. Branches without an upstream report "no upstream"
+rather than pretending to be in sync.
+
+### Active, archived and not applicable
+
+The board defaults to live GitHub repositories. Archived repositories and
+projects without a GitHub origin are moved to their own tabs, with counts, so
+nothing is hidden.
 
 ### Aborting a running agent
 
@@ -88,6 +139,19 @@ Open [http://localhost:3000](http://localhost:3000).
 | `ROOT_DIR` | `<home>/Workspace` | Directory the hub scans for `.ai/handoff/MANIFEST.json` files. Should match the root directory configured in `aahp-runner`. Path is platform-native: `/Users/you/Workspace` on macOS, `/home/you/Workspace` on Linux, `C:\Users\you\Workspace` on Windows. |
 | `METRICS_FILE` | `<home>/.aahp/metrics.jsonl` | Path to the `aahp-runner` JSONL metrics file. Override only if you point `aahp-runner` at a non-default location. |
 | `SESSIONS_FILE` | `<home>/.aahp/sessions.json` | Path to the live sessions file written by `aahp-runner` and `aahp-orchestrator`. The hub reads this for the running-agent view, the SSE stream, and the `controlPort` used by the Abort button. |
+| `HUB_GITHUB_TTL_SECONDS` | `300` | How long fetched repository counts stay fresh before the next `gh` query. |
+| `HUB_GITHUB_CACHE_FILE` | `<home>/.aahp/hub-github-cache.json` | Where the repository cache is persisted, so a restart does not lose the last good values. |
+
+There is deliberately **no token variable**. Repository access goes through
+the `gh` CLI:
+
+```bash
+gh auth login   # once, if you have not already
+gh auth status  # should report a logged-in account
+```
+
+Without `gh`, the dashboard still renders every local handoff signal and
+labels the repository columns as unavailable.
 
 The scanner walks two levels deep, skips dotfiles and `node_modules`, and
 expects each project to have a `.ai/handoff/MANIFEST.json` at its root. If a

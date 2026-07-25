@@ -5,6 +5,78 @@
 
 ---
 
+## 2026-07-25: Daily project overview, honest by construction (claude-opus-5)
+
+The dashboard rendered AAHP handoff state and nothing else, which made it
+thin, and one panel made it actively misleading. This session turned it into
+the overview it was supposed to be.
+
+### ADR: repositories are identified by the git origin remote
+
+Directory names drift (`sample-bot-dir` tracks
+`acme/sample-bot`), manifest `github_repo` fields are
+absent in 23 of 57 scanned projects and stale in others, and two projects were
+migrated to a self-hosted Forgejo at `forge.internal.example` and no longer exist on
+GitHub. `.git/config` is read directly (no `git` process per project) and the
+origin URL is parsed into `owner/name`. The manifest field is used only as a
+fallback for a checkout with no remote at all, and the UI reports which source
+a mapping came from.
+
+Consequence: a project with no GitHub origin renders as `n/a`. Never an error,
+never a zero.
+
+### ADR: credentials come from the `gh` CLI, not from this process
+
+There is no `GITHUB_TOKEN` variable, no token file and no PAT prompt. The hub
+spawns `gh api graphql --input -` and lets gh supply its own keyring-backed
+credentials. The GraphQL document travels on stdin, never in argv and never
+through a shell; owner and name are validated against strict patterns and
+dropped (not escaped) if they fail, so nothing caller-controlled can reshape
+the document.
+
+Cost: one aliased document per batch of 30 repositories is 1 rate-limit point.
+The whole fleet of 49 mapped repositories is 2 points out of 5000 per hour.
+Measured live: 49 requested, 49 answered.
+
+### ADR: OPEN, MERGED and CLOSED pull requests are three numbers
+
+GitHub's `CLOSED` pull request state EXCLUDES merged pull requests.
+`acme/sample-service` returns 0 closed and 30 merged. Rendering "closed
+PRs" from `states: CLOSED` alone would have claimed that nothing ever shipped
+there, which is exactly the class of misinformation this session was called in
+to remove. All three are queried and labelled separately, and the column
+header explains the semantics. Issues and pull requests stay separate GraphQL
+fields, so the REST conflation problem never arises.
+
+### Removed: the fabricated tooling panel
+
+`lib/tooling.ts` returned a hardcoded list of eleven models with invented
+`online` / `standby` statuses and five MCP servers with invented tool counts.
+Nothing measured any of it. It was deleted along with `app/tooling-panel.tsx`
+rather than wired to a fake probe. The real, measurable signal about tooling
+now on screen is whether `gh` is installed and authenticated, reported in the
+freshness bar when it is not.
+
+### Staleness is a column, not a footnote
+
+Several checkouts were 17 to 20 commits behind their remote, which silently
+invalidates every handoff-derived value in the row. Drift is measured from the
+remote-tracking refs with `git --no-optional-locks status --porcelain=v2`, and
+the mtime of `FETCH_HEAD` is shown next to it so the reader knows how old that
+measurement is. The hub never fetches. Branches with no upstream say "no
+upstream" instead of "in sync".
+
+### Non-blocking by design
+
+`app/page.tsx` renders the handoff board from local files. `/api/fleet` fills
+the repository and checkout columns afterwards. Cells distinguish three
+states: `n/a` (does not apply), a pulsing placeholder (not fetched yet), and a
+number. A failed refresh keeps the last good values with a visible staleness
+marker; `mergeFetchIntoCache` preserves each repository's own `fetchedAt`, so
+a row that did not answer this round shows its real age.
+
+---
+
 ## 2026-04-30: Sidebar nav + metrics page + spawn window fix (claude-opus-4-7)
 
 User asked for three things at once: hide the visible Node console

@@ -8,6 +8,7 @@ import { redactHome } from '@/lib/redact';
 import { AbortButton } from '../../abort-button';
 import { AutoRefresh, LiveIndicator } from '../../auto-refresh';
 import { HealthBadge } from '../../health-badge';
+import { ProjectRepositoryPanel } from '../../project-repository-panel';
 import { ProjectSectionNav } from '../../project-section-nav';
 import { RelativeTime } from '../../timestamp';
 import { RunButton } from '../../run-button';
@@ -62,7 +63,9 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
   if (!project) notFound();
 
   const health = computeHealth(project);
-  const github = githubProjectLinks(project.githubRepo);
+  // The git origin remote is authoritative; the manifest field is only a
+  // fallback for checkouts that have no remote at all.
+  const github = githubProjectLinks(project.remote.repo ?? project.githubRepo);
   const metrics = project.metrics;
   const progress = progressPercent(project);
   const isRunning = project.activeSessions.length > 0;
@@ -150,6 +153,10 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
         </section>
 
         <div className="mt-4 space-y-4">
+          <Section id="repository" eyebrow="Repository" title="Issues, pull requests and alerts">
+            <ProjectRepositoryPanel projectId={project.id} remote={project.remote} />
+          </Section>
+
           <Section id="tasks" eyebrow="Execution queue" title={`Tasks (${project.tasks.length})`}>
             {project.tasks.length === 0 ? (
               <p className="text-sm text-dim">No formal tasks are currently recorded. This usually means the roadmap is complete or future work has not been promoted to formal tasks.</p>

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { evaluateRepoPosture } from './posture';
+import { classifyManifestRepo } from './git-remote';
 import type { ProjectSummary } from './manifest';
 
 vi.mock('node:fs/promises', async () => {
@@ -73,6 +74,8 @@ function createMockProject(name: string, path: string): ProjectSummary {
     lastUpdated: new Date().toISOString(),
     recentlyActive: true,
     githubRepo: `homeofe/${name}`,
+    remote: classifyManifestRepo(`homeofe/${name}`),
+    handoffModifiedAt: null,
     metrics: null,
     activeSessions: [],
     worktreeCount: 1,

@@ -17,10 +17,9 @@ original user TODO is complete.
 
 | Area | Suggestion | Why |
 |------|-----------|-----|
-| Filtering | UI to filter by phase or hide done projects | Useful once project count grows |
-| Sorting | Sort by project name, last activity, or token spend | Currently sort puts running agents first, then by last timestamp |
-| Detail page | `/projects/[name]` with full STATUS.md and recent LOG entries | Card truncates to 3 active tasks |
-| GitHub integration | Show open PRs from each project's repo | Closes the loop with `aahp-runner` PR creation |
+| CI status | Add a workflow-run column (last conclusion per default branch) to the fleet board | The board covers issues, PRs, alerts and drift; a red pipeline is the remaining daily signal |
+| Forgejo | Read issue and PR counts for projects on forge.internal.example | Today they render as not-applicable, which is honest but empty |
+| Fetch prompt | Offer a one-click `git fetch` for checkouts flagged as behind | Drift is detected but the fix is still manual, and fetching must stay an explicit user action |
 | Per-session log tail | Stream the running agent's full log, not just the last line | Higher fidelity than a single line; needs a log-tailing route handler |
 | Token cost in dollars | Multiply tokens by per-model pricing | Modelled after the runner's `modelId`; needs a price table that ages well |
 | API endpoint | `/api/sessions` JSON for non-browser clients | Defer until requested |
@@ -33,6 +32,10 @@ original user TODO is complete.
 
 | ID | Task | Resolution |
 |----|------|-----------|
+| - | Daily project overview | Fleet board with issues, pull requests (open/merged/closed-without-merge), open Dependabot alerts and checkout drift per project. Repository mapping from the git origin remote; data via the `gh` CLI in one batched GraphQL query, TTL cached and persisted. |
+| - | Filtering and sorting | Name search, phase filter, status pills, active/archived/not-on-GitHub segments and a "needs attention" sort, all in the fleet board. |
+| - | Detail page | `/projects/[projectId]` exists and now carries a Repository section with the same honest counts. |
+| - | Remove fabricated tooling panel | `lib/tooling.ts` returned eleven hardcoded models with invented statuses. Deleted rather than faked. |
 | T-005 | Token tracking | aahp-runner v0.4.0 records `inputTokens`/`outputTokens`/`cacheReadTokens`/`cacheCreationTokens`/`modelId`. Hub renders per-card input/output totals and a cache hit rate; footer shows totals + cache rate across all projects. |
 | T-004 | Abort function | aahp-runner v0.4.0 exposes `POST /abort` on `127.0.0.1:<controlPort>` with the port published in `~/.aahp/sessions.json`. Hub adds `app/api/abort` proxy and an Abort button per running-session row. Disabled when controlPort is absent. |
 | T-001 | Tests | 39 vitest tests across the three lib modules |
