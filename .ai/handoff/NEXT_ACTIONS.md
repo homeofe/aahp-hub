@@ -18,7 +18,7 @@ original user TODO is complete.
 | Area | Suggestion | Why |
 |------|-----------|-----|
 | CI status | Add a workflow-run column (last conclusion per default branch) to the fleet board | The board covers issues, PRs, alerts and drift; a red pipeline is the remaining daily signal |
-| Forgejo | Read issue and PR counts for projects on code.home.io | Today they render as not-applicable, which is honest but empty |
+| Forgejo | Read issue and PR counts for projects on forge.internal.example | Today they render as not-applicable, which is honest but empty |
 | Fetch prompt | Offer a one-click `git fetch` for checkouts flagged as behind | Drift is detected but the fix is still manual, and fetching must stay an explicit user action |
 | Per-session log tail | Stream the running agent's full log, not just the last line | Higher fidelity than a single line; needs a log-tailing route handler |
 | Token cost in dollars | Multiply tokens by per-model pricing | Modelled after the runner's `modelId`; needs a price table that ages well |

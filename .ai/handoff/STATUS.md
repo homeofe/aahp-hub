@@ -1,4 +1,4 @@
-> Note (2026-07-25, claude-opus-5): Turned the dashboard into a daily project overview. The card grid is now a compact fleet board (app/fleet-board.tsx) with per-project open/closed issues, open/merged/closed-without-merge pull requests, open Dependabot alerts and local checkout drift. Repository data comes from the `gh` CLI through one aliased GraphQL document per batch (lib/github-stats.ts), TTL cached and persisted (lib/github-cache.ts); no GITHUB_TOKEN variable exists anywhere in the repo. Projects are mapped to repositories by their git origin remote (lib/git-remote.ts, lib/checkout.ts), so directory-name drift and the code.home.io Forgejo migrations resolve correctly and render as not-applicable instead of zeros. REMOVED lib/tooling.ts and app/tooling-panel.tsx: they rendered a hardcoded list of eleven models with invented online/standby statuses on a dashboard used for decisions. app/project-filter.tsx and app/project-overview-card.tsx were folded into the fleet board.
+> Note (2026-07-25, claude-opus-5): Turned the dashboard into a daily project overview. The card grid is now a compact fleet board (app/fleet-board.tsx) with per-project open/closed issues, open/merged/closed-without-merge pull requests, open Dependabot alerts and local checkout drift. Repository data comes from the `gh` CLI through one aliased GraphQL document per batch (lib/github-stats.ts), TTL cached and persisted (lib/github-cache.ts); no GITHUB_TOKEN variable exists anywhere in the repo. Projects are mapped to repositories by their git origin remote (lib/git-remote.ts, lib/checkout.ts), so directory-name drift and the forge.internal.example Forgejo migrations resolve correctly and render as not-applicable instead of zeros. REMOVED lib/tooling.ts and app/tooling-panel.tsx: they rendered a hardcoded list of eleven models with invented online/standby statuses on a dashboard used for decisions. app/project-filter.tsx and app/project-overview-card.tsx were folded into the fleet board.
 
 > Note (2026-07-19, claude-opus-4-8): Aligned the AAHP v3.8.0 conformance PR (#13) with its code review. Corrected the false "GitHub Actions is OFF org-wide (cost sweep)" claim in aahp-verify.yml and the PR body (homeofe Actions is ON). Restored the MANIFEST "project" field to "aahp-hub" (the CLI regen had rewritten it to the temp working-directory name). Rejected the two Gemini inline suggestions (GROUNDING.md Section 5 schema wording, WORKFLOW.md install-hooks command) because they target canonical AAHP v3.8.0 template files that are copied verbatim from @elvatis_com/aahp; editing them per-repo would fork the canonical and churn on the next tooling run. Re-ran the CLI manifest regen and verify (Layer 1 checksums refreshed).
 
@@ -127,7 +127,7 @@ falling back to zeros.
 | Auth | (deferred) | Internal tool only, intentionally none |
 | Multi-host runners | LOW | Abort proxy is localhost-only by design |
 | Token cost in $ | LOW | Tokens are tracked; pricing table is a separate concern |
-| Non-GitHub forges | LOW | Projects on the self-hosted Forgejo (code.home.io) render as not-applicable. Wiring the Forgejo API would need its own credential story; deliberately out of scope here. |
+| Non-GitHub forges | LOW | Projects on the self-hosted Forgejo (forge.internal.example) render as not-applicable. Wiring the Forgejo API would need its own credential story; deliberately out of scope here. |
 | CI status per project | LOW | The board covers issues, pull requests, alerts and drift; workflow run status is a natural next column |
 <!-- /SECTION: what_is_missing -->
 
@@ -153,7 +153,7 @@ falling back to zeros.
 | T-004 abort | `app/api/abort/route.ts` proxies to runner's `/abort`; `lib/sessions.ts` exposes `controlPort`; `AbortButton` client component handles confirm + state machine |
 | Aborted-run distinction | `RunMetric.aborted` plumbed through; counted separately on cards and in the footer |
 | Cross-platform `.env.example` | Replaced macOS-only example with explicit macOS/Linux/Windows examples plus a forward-slash variant note |
-| Local `.env.local` | Created for the user's Windows setup (`C:\Users\root\Workspace` etc.); gitignored |
+| Local `.env.local` | Created for the user's Windows setup (`C:\Users\dev\Workspace` etc.); gitignored |
 | Test coverage | +12 tests for token aggregation, format helpers, controlPort parsing, aborted runs |
 <!-- /SECTION: resolved_this_session -->
 

@@ -12,10 +12,10 @@ import {
 describe('parseRemoteUrl', () => {
   it.each([
     ['https://github.com/homeofe/aahp-hub.git', 'github.com', 'homeofe', 'aahp-hub'],
-    ['https://github.com/elvatis/elvatis-defense', 'github.com', 'elvatis', 'elvatis-defense'],
+    ['https://github.com/acme/sample-service', 'github.com', 'acme', 'sample-service'],
     ['git@github.com:homeofe/supply-chain-guard.git', 'github.com', 'homeofe', 'supply-chain-guard'],
-    ['ssh://git@github.com/elvatis/atlas.git', 'github.com', 'elvatis', 'atlas'],
-    ['ssh://git@code.home.io:2222/emre/gaming-llm.git', 'code.home.io', 'emre', 'gaming-llm'],
+    ['ssh://git@github.com/acme/atlas.git', 'github.com', 'acme', 'atlas'],
+    ['ssh://git@forge.internal.example:2222/team/sample-app.git', 'forge.internal.example', 'team', 'sample-app'],
     ['git://github.com/owner/repo.git', 'github.com', 'owner', 'repo'],
     ['https://x-token:secret@github.com/owner/repo.git', 'github.com', 'owner', 'repo'],
     ['HTTPS://GitHub.com/Owner/Repo', 'github.com', 'Owner', 'Repo'],
@@ -25,9 +25,9 @@ describe('parseRemoteUrl', () => {
 
   it.each([
     'C:\\Users\\root\\Workspace\\repo',
-    'C:/Users/root/Workspace/repo',
-    '/home/emre/src/repo',
-    'file:///home/emre/src/repo',
+    'C:/Users/dev/Workspace/repo',
+    '/home/team/src/repo',
+    'file:///home/team/src/repo',
     '../sibling-repo',
     'https://github.com/only-one-segment',
     'https://github.com/too/many/segments',
@@ -56,10 +56,10 @@ describe('classifyRemoteUrl', () => {
   });
 
   it('treats a migrated Forgejo project as not applicable rather than an error', () => {
-    const remote = classifyRemoteUrl('ssh://git@code.home.io:2222/emre/gaming-llm.git');
+    const remote = classifyRemoteUrl('ssh://git@forge.internal.example:2222/team/sample-app.git');
     expect(remote.kind).toBe('other-host');
     expect(remote.repo).toBeNull();
-    expect(remote.host).toBe('code.home.io');
+    expect(remote.host).toBe('forge.internal.example');
   });
 
   it('treats a checkout with no remote as not applicable', () => {
@@ -88,7 +88,7 @@ describe('classifyRemoteUrl', () => {
 describe('isValidRepoRef', () => {
   it.each([
     ['homeofe', 'aahp-hub'],
-    ['elvatis', 'ai.elvatis.com'],
+    ['acme', 'ai.elvatis.com'],
     ['swiss-german-software-agency', 'tennis-coach-admin'],
   ])('accepts %s/%s', (owner, name) => {
     expect(isValidRepoRef(owner, name)).toBe(true);
@@ -110,9 +110,9 @@ describe('isValidRepoRef', () => {
 
 describe('classifyManifestRepo', () => {
   it('accepts a declared owner/name as a fallback and records the source', () => {
-    expect(classifyManifestRepo('elvatis/openclaw-todo')).toMatchObject({
+    expect(classifyManifestRepo('acme/sample-plugin')).toMatchObject({
       kind: 'github',
-      repo: 'elvatis/openclaw-todo',
+      repo: 'acme/sample-plugin',
       source: 'manifest',
     });
   });
@@ -130,7 +130,7 @@ describe('parseGitConfigRemotes', () => {
 \turl = https://github.com/homeofe/aahp-hub.git
 \tfetch = +refs/heads/*:refs/remotes/origin/*
 [remote "upstream"]
-\turl = git@github.com:elvatis/aahp-hub.git
+\turl = git@github.com:acme/aahp-hub.git
 [branch "main"]
 \tremote = origin
 `;
@@ -138,7 +138,7 @@ describe('parseGitConfigRemotes', () => {
   it('reads every remote url', () => {
     const remotes = parseGitConfigRemotes(config);
     expect(remotes.get('origin')).toBe('https://github.com/homeofe/aahp-hub.git');
-    expect(remotes.get('upstream')).toBe('git@github.com:elvatis/aahp-hub.git');
+    expect(remotes.get('upstream')).toBe('git@github.com:acme/aahp-hub.git');
     expect(remotes.size).toBe(2);
   });
 

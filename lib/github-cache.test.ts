@@ -13,8 +13,8 @@ import type { RepoRef, RepoStats } from './github-stats';
 
 function stats(overrides: Partial<RepoStats> = {}): RepoStats {
   return {
-    nameWithOwner: 'elvatis/elvatis-defense',
-    url: 'https://github.com/elvatis/elvatis-defense',
+    nameWithOwner: 'acme/sample-service',
+    url: 'https://github.com/acme/sample-service',
     isArchived: false,
     isPrivate: true,
     isFork: false,
@@ -32,7 +32,7 @@ function stats(overrides: Partial<RepoStats> = {}): RepoStats {
   };
 }
 
-const refs: RepoRef[] = [{ owner: 'elvatis', name: 'elvatis-defense' }];
+const refs: RepoRef[] = [{ owner: 'acme', name: 'sample-service' }];
 
 function outcome(overrides: Partial<FetchOutcome> = {}): FetchOutcome {
   return {
@@ -48,7 +48,7 @@ describe('isCacheFresh', () => {
   const cache: GitHubCacheFile = {
     ...emptyCache(),
     updatedAt: '2026-07-25T10:00:00Z',
-    repos: { 'elvatis/elvatis-defense': { stats: stats(), fetchedAt: '2026-07-25T10:00:00Z' } },
+    repos: { 'acme/sample-service': { stats: stats(), fetchedAt: '2026-07-25T10:00:00Z' } },
   };
   const base = Date.parse('2026-07-25T10:00:00Z');
 
@@ -83,7 +83,7 @@ describe('mergeFetchIntoCache', () => {
     ...emptyCache(),
     updatedAt: '2026-07-25T09:00:00Z',
     lastSuccessAt: '2026-07-25T09:00:00Z',
-    repos: { 'elvatis/elvatis-defense': { stats: stats(), fetchedAt: '2026-07-25T09:00:00Z' } },
+    repos: { 'acme/sample-service': { stats: stats(), fetchedAt: '2026-07-25T09:00:00Z' } },
   };
 
   it('keeps the last good values when the refresh fails completely', () => {
@@ -93,7 +93,7 @@ describe('mergeFetchIntoCache', () => {
       '2026-07-25T10:00:00Z',
     );
 
-    const entry = merged.repos['elvatis/elvatis-defense'];
+    const entry = merged.repos['acme/sample-service'];
     // The critical property: no zeros, and the old timestamp is preserved so
     // the row can be marked stale rather than silently wrong.
     expect(entry?.stats.mergedPullRequests).toBe(30);
@@ -106,14 +106,14 @@ describe('mergeFetchIntoCache', () => {
     const merged = mergeFetchIntoCache(
       previous,
       outcome({
-        stats: new Map([['elvatis/elvatis-defense', stats({ openIssues: 7, mergedPullRequests: 31 })]]),
+        stats: new Map([['acme/sample-service', stats({ openIssues: 7, mergedPullRequests: 31 })]]),
         rateLimit: { cost: 1, remaining: 4900, limit: 5000, resetAt: null },
       }),
       '2026-07-25T10:00:00Z',
     );
 
-    expect(merged.repos['elvatis/elvatis-defense']?.stats.openIssues).toBe(7);
-    expect(merged.repos['elvatis/elvatis-defense']?.fetchedAt).toBe('2026-07-25T10:00:00Z');
+    expect(merged.repos['acme/sample-service']?.stats.openIssues).toBe(7);
+    expect(merged.repos['acme/sample-service']?.fetchedAt).toBe('2026-07-25T10:00:00Z');
     expect(merged.lastSuccessAt).toBe('2026-07-25T10:00:00Z');
     expect(merged.lastFailure).toBeNull();
     expect(merged.rateLimit?.remaining).toBe(4900);
@@ -122,14 +122,14 @@ describe('mergeFetchIntoCache', () => {
   it('clears a stale per-repository error once the repository answers again', () => {
     const withError: GitHubCacheFile = {
       ...previous,
-      repoErrors: { 'elvatis/elvatis-defense': { message: 'gone', at: '2026-07-25T09:00:00Z' } },
+      repoErrors: { 'acme/sample-service': { message: 'gone', at: '2026-07-25T09:00:00Z' } },
     };
     const merged = mergeFetchIntoCache(
       withError,
-      outcome({ stats: new Map([['elvatis/elvatis-defense', stats()]]) }),
+      outcome({ stats: new Map([['acme/sample-service', stats()]]) }),
       '2026-07-25T10:00:00Z',
     );
-    expect(merged.repoErrors['elvatis/elvatis-defense']).toBeUndefined();
+    expect(merged.repoErrors['acme/sample-service']).toBeUndefined();
   });
 });
 
@@ -139,7 +139,7 @@ describe('toOverview', () => {
     ...emptyCache(),
     updatedAt: '2026-07-25T10:00:00Z',
     lastSuccessAt: '2026-07-25T10:00:00Z',
-    repos: { 'elvatis/elvatis-defense': { stats: stats(), fetchedAt: '2026-07-25T10:00:00Z' } },
+    repos: { 'acme/sample-service': { stats: stats(), fetchedAt: '2026-07-25T10:00:00Z' } },
   };
 
   it('projects only the requested repositories', () => {
@@ -151,7 +151,7 @@ describe('toOverview', () => {
   it('marks values stale once the last success is older than the TTL', () => {
     const overview = toOverview(cache, refs, 300_000, 'stale-cache', base + 400_000);
     expect(overview.stale).toBe(true);
-    expect(overview.entries.get('elvatis/elvatis-defense')?.stats.openIssues).toBe(3);
+    expect(overview.entries.get('acme/sample-service')?.stats.openIssues).toBe(3);
   });
 
   it('reports an empty source when nothing has ever been fetched', () => {

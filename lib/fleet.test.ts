@@ -16,8 +16,8 @@ const NOW = Date.parse('2026-07-25T12:00:00Z');
 
 function stats(overrides: Partial<RepoStats> = {}): RepoStats {
   return {
-    nameWithOwner: 'elvatis/elvatis-defense',
-    url: 'https://github.com/elvatis/elvatis-defense',
+    nameWithOwner: 'acme/sample-service',
+    url: 'https://github.com/acme/sample-service',
     isArchived: false,
     isPrivate: true,
     isFork: false,
@@ -65,17 +65,17 @@ function overview(overrides: Partial<GitHubOverviewData> = {}): GitHubOverviewDa
 
 const githubProject: FleetProjectInput = {
   id: 'p1',
-  name: 'elvatis-defense',
-  path: '/w/elvatis-defense',
-  remote: classifyRemoteUrl('https://github.com/elvatis/elvatis-defense.git'),
+  name: 'sample-service',
+  path: '/w/sample-service',
+  remote: classifyRemoteUrl('https://github.com/acme/sample-service.git'),
   handoffModifiedAt: '2026-07-25T09:00:00Z',
 };
 
 const forgejoProject: FleetProjectInput = {
   id: 'p2',
-  name: 'gaming-llm',
-  path: '/w/gaming-llm',
-  remote: classifyRemoteUrl('ssh://git@code.home.io:2222/emre/gaming-llm.git'),
+  name: 'sample-app',
+  path: '/w/sample-app',
+  remote: classifyRemoteUrl('ssh://git@forge.internal.example:2222/team/sample-app.git'),
   handoffModifiedAt: '2026-07-25T09:00:00Z',
 };
 
@@ -90,12 +90,12 @@ const noRemoteProject: FleetProjectInput = {
 describe('collectRepoRefs', () => {
   it('asks GitHub only about projects with a GitHub origin', () => {
     expect(collectRepoRefs([githubProject, forgejoProject, noRemoteProject])).toEqual([
-      { owner: 'elvatis', name: 'elvatis-defense' },
+      { owner: 'acme', name: 'sample-service' },
     ]);
   });
 
   it('deduplicates repositories shared by several checkouts', () => {
-    const duplicate: FleetProjectInput = { ...githubProject, id: 'p1b', path: '/w/elvatis-defense-worktree' };
+    const duplicate: FleetProjectInput = { ...githubProject, id: 'p1b', path: '/w/sample-service-worktree' };
     expect(collectRepoRefs([githubProject, duplicate])).toHaveLength(1);
   });
 });
@@ -126,7 +126,7 @@ describe('buildFleetRows', () => {
   it('attaches stats and the timestamp they were fetched at', () => {
     const github = overview({
       entries: new Map([
-        ['elvatis/elvatis-defense', { stats: stats(), fetchedAt: '2026-07-25T11:59:00Z' }],
+        ['acme/sample-service', { stats: stats(), fetchedAt: '2026-07-25T11:59:00Z' }],
       ]),
     });
     const rows = buildFleetRows([githubProject], github, new Map(), NOW);
@@ -137,7 +137,7 @@ describe('buildFleetRows', () => {
 
   it('surfaces a per-repository error without dropping the row', () => {
     const github = overview({
-      repoErrors: new Map([['elvatis/elvatis-defense', { message: 'repository renamed', at: 'x' }]]),
+      repoErrors: new Map([['acme/sample-service', { message: 'repository renamed', at: 'x' }]]),
     });
     const rows = buildFleetRows([githubProject], github, new Map(), NOW);
     expect(rows).toHaveLength(1);
@@ -155,12 +155,12 @@ describe('buildFleetRows', () => {
     };
     const github = overview({
       entries: new Map([
-        ['elvatis/elvatis-defense', { stats: stats({ securityAlerts: 4 }), fetchedAt: 'x' }],
+        ['acme/sample-service', { stats: stats({ securityAlerts: 4 }), fetchedAt: 'x' }],
         ['homeofe/aahp-hub', { stats: stats({ securityAlerts: 0 }), fetchedAt: 'x' }],
       ]),
     });
     const rows = buildFleetRows([calm, githubProject], github, new Map(), NOW);
-    expect(rows[0]?.name).toBe('elvatis-defense');
+    expect(rows[0]?.name).toBe('sample-service');
   });
 });
 

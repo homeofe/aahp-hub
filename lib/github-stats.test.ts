@@ -27,15 +27,15 @@ function runnerReturning(result: CommandResult): GraphQLRunner {
 describe('buildRepoStatsQuery', () => {
   it('batches many repositories into a single aliased document', () => {
     const refs: RepoRef[] = [
-      { owner: 'elvatis', name: 'elvatis-defense' },
+      { owner: 'acme', name: 'sample-service' },
       { owner: 'homeofe', name: 'aahp-hub' },
-      { owner: 'elvatis', name: 'ai.elvatis.com' },
+      { owner: 'acme', name: 'ai.elvatis.com' },
     ];
     const { query, aliases } = buildRepoStatsQuery(refs);
 
     expect(aliases.size).toBe(3);
-    expect(query).toContain('r0: repository(owner: "elvatis", name: "elvatis-defense")');
-    expect(query).toContain('r2: repository(owner: "elvatis", name: "ai.elvatis.com")');
+    expect(query).toContain('r0: repository(owner: "acme", name: "sample-service")');
+    expect(query).toContain('r2: repository(owner: "acme", name: "ai.elvatis.com")');
     // One document, one rate limit point.
     expect(query.match(/repository\(/g)).toHaveLength(3);
     expect(query).toContain('rateLimit');
@@ -66,8 +66,8 @@ describe('buildRepoStatsQuery', () => {
 
 describe('parseRepoStatsResponse', () => {
   const refs: RepoRef[] = [
-    { owner: 'elvatis', name: 'elvatis-defense' },
-    { owner: 'elvatis', name: 'gone' },
+    { owner: 'acme', name: 'sample-service' },
+    { owner: 'acme', name: 'gone' },
   ];
 
   function response(): unknown {
@@ -75,8 +75,8 @@ describe('parseRepoStatsResponse', () => {
       data: {
         rateLimit: { cost: 1, remaining: 4849, limit: 5000, resetAt: '2026-07-25T10:00:00Z' },
         r0: {
-          nameWithOwner: 'elvatis/elvatis-defense',
-          url: 'https://github.com/elvatis/elvatis-defense',
+          nameWithOwner: 'acme/sample-service',
+          url: 'https://github.com/acme/sample-service',
           isArchived: false,
           isPrivate: true,
           isFork: false,
@@ -95,7 +95,7 @@ describe('parseRepoStatsResponse', () => {
         {
           type: 'NOT_FOUND',
           path: ['r1'],
-          message: "Could not resolve to a Repository with the name 'elvatis/gone'.",
+          message: "Could not resolve to a Repository with the name 'acme/gone'.",
         },
       ],
     };
@@ -103,7 +103,7 @@ describe('parseRepoStatsResponse', () => {
 
   it('keeps merged pull requests distinct from closed ones', () => {
     const parsed = parseRepoStatsResponse(response(), aliasesFor(refs));
-    const stats = parsed.stats.get('elvatis/elvatis-defense');
+    const stats = parsed.stats.get('acme/sample-service');
     expect(stats).toBeDefined();
     // The exact trap this dashboard has to avoid: CLOSED excludes merged, so a
     // repository with 30 merged PRs legitimately reports 0 closed.
@@ -117,7 +117,7 @@ describe('parseRepoStatsResponse', () => {
   it('handles a partial failure: data for one alias, an error for another', () => {
     const parsed = parseRepoStatsResponse(response(), aliasesFor(refs));
     expect(parsed.stats.size).toBe(1);
-    expect(parsed.repoErrors.get('elvatis/gone')).toContain('Could not resolve');
+    expect(parsed.repoErrors.get('acme/gone')).toContain('Could not resolve');
     expect(parsed.globalErrors).toEqual([]);
     expect(parsed.rateLimit?.remaining).toBe(4849);
   });
@@ -132,7 +132,7 @@ describe('parseRepoStatsResponse', () => {
     });
 
     const parsed = parseRepoStatsResponse(body, aliasesFor(refs));
-    const stats = parsed.stats.get('elvatis/elvatis-defense');
+    const stats = parsed.stats.get('acme/sample-service');
     expect(stats?.openIssues).toBe(3);
     // Unknown, not zero.
     expect(stats?.securityAlerts).toBeNull();
@@ -259,7 +259,7 @@ describe('fetchRepoStats degradation', () => {
 
   it('splits a large fleet into chunks and keeps the results from every chunk', async () => {
     const many: RepoRef[] = Array.from({ length: 5 }, (_, index) => ({
-      owner: 'elvatis',
+      owner: 'acme',
       name: `repo-${String(index)}`,
     }));
     const seen: string[] = [];

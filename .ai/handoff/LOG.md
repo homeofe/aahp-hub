@@ -13,10 +13,10 @@ the overview it was supposed to be.
 
 ### ADR: repositories are identified by the git origin remote
 
-Directory names drift (`openclaw-teams-elvatis` tracks
-`elvatis/openclaw-msteams-bot-elvatis`), manifest `github_repo` fields are
+Directory names drift (`sample-bot-dir` tracks
+`acme/sample-bot`), manifest `github_repo` fields are
 absent in 23 of 57 scanned projects and stale in others, and two projects were
-migrated to a self-hosted Forgejo at `code.home.io` and no longer exist on
+migrated to a self-hosted Forgejo at `forge.internal.example` and no longer exist on
 GitHub. `.git/config` is read directly (no `git` process per project) and the
 origin URL is parsed into `owner/name`. The manifest field is used only as a
 fallback for a checkout with no remote at all, and the UI reports which source
@@ -41,7 +41,7 @@ Measured live: 49 requested, 49 answered.
 ### ADR: OPEN, MERGED and CLOSED pull requests are three numbers
 
 GitHub's `CLOSED` pull request state EXCLUDES merged pull requests.
-`elvatis/elvatis-defense` returns 0 closed and 30 merged. Rendering "closed
+`acme/sample-service` returns 0 closed and 30 merged. Rendering "closed
 PRs" from `states: CLOSED` alone would have claimed that nothing ever shipped
 there, which is exactly the class of misinformation this session was called in
 to remove. All three are queried and labelled separately, and the column
@@ -648,7 +648,7 @@ strip ANSI noise and slice to a fixed width; we follow the same pattern.
 
 The first dev-server smoke test crashed with "Objects are not valid as a
 React child (found: object with keys {project, stack, last_session,
-active_task})". Root cause: `elvatis-defense/.ai/handoff/MANIFEST.json`
+active_task})". Root cause: `sample-service/.ai/handoff/MANIFEST.json`
 uses a non-spec schema where `quick_context` is an object (not a string)
 and `tasks` is an array (not an object). The MVP code passed the object
 straight to JSX and React refused to render it.
@@ -669,7 +669,7 @@ calls out, so no rule change is needed - just enforcement.
   `event: change` after writing to `sessions.json`
 - Page renders running session ("aahp-runner / smoke test") with pulsing
   dot and last log line
-- `elvatis-defense` (variant schema) renders without crashing
+- `sample-service` (variant schema) renders without crashing
 - Page returns HTTP 200 with active and idle sessions
 
 ### Open questions

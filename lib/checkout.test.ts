@@ -91,9 +91,9 @@ describe('readProjectRemote', () => {
 
   it('falls back to the manifest declaration when there is no checkout', async () => {
     const dir = await tempProject();
-    expect(await readProjectRemote(dir, 'elvatis/atlas')).toMatchObject({
+    expect(await readProjectRemote(dir, 'acme/atlas')).toMatchObject({
       kind: 'github',
-      repo: 'elvatis/atlas',
+      repo: 'acme/atlas',
       source: 'manifest',
     });
   });
@@ -103,13 +103,13 @@ describe('readProjectRemote', () => {
     await mkdir(join(dir, '.git'), { recursive: true });
     await writeFile(
       join(dir, '.git', 'config'),
-      '[remote "origin"]\n\turl = ssh://git@code.home.io:2222/emre/gaming-llm.git\n',
+      '[remote "origin"]\n\turl = ssh://git@forge.internal.example:2222/team/sample-app.git\n',
       'utf8',
     );
     // The manifest still claims GitHub; the remote says the project moved.
-    const remote = await readProjectRemote(dir, 'elvatis/gaming-llm');
+    const remote = await readProjectRemote(dir, 'acme/sample-app');
     expect(remote.kind).toBe('other-host');
-    expect(remote.host).toBe('code.home.io');
+    expect(remote.host).toBe('forge.internal.example');
     expect(remote.repo).toBeNull();
   });
 
