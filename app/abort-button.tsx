@@ -50,10 +50,10 @@ export function AbortButton({ repoName, taskId, disabled = false, disabledReason
     }
   };
 
-  if (disabled) return <button type="button" disabled title={disabledReason ?? 'unavailable'} className="akido-link-btn is-disabled">{'\u00D7'} abort</button>;
-  if (state === 'aborted') return <span className="akido-link-btn tone-er">aborted</span>;
-  if (state === 'error') return <button type="button" onClick={() => { setState('idle'); setErrorMessage(null); }} title={errorMessage ?? 'unknown error'} className="akido-link-btn tone-er">retry abort</button>;
+  if (disabled) return <button type="button" disabled title={disabledReason ?? 'unavailable'} className="hub-link-btn is-disabled">{'\u00D7'} abort</button>;
+  if (state === 'aborted') return <span className="hub-link-btn tone-er">aborted</span>;
+  if (state === 'error') return <button type="button" onClick={() => { setState('idle'); setErrorMessage(null); }} title={errorMessage ?? 'unknown error'} className="hub-link-btn tone-er">retry abort</button>;
 
   const busy = state === 'pending' || isPending;
-  return <button type="button" onClick={handleClick} disabled={busy} className={`akido-link-btn tone-er ${busy ? 'opacity-60 cursor-progress' : ''}`}>{busy ? 'aborting...' : <>{'\u00D7'} abort</>}</button>;
+  return <button type="button" onClick={handleClick} disabled={busy} className={`hub-link-btn tone-er ${busy ? 'opacity-60 cursor-progress' : ''}`}>{busy ? 'aborting...' : <>{'\u00D7'} abort</>}</button>;
 }

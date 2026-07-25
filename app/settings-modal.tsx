@@ -236,14 +236,14 @@ export function SettingsModal({
             <button
               type="button"
               onClick={onClose}
-              className="akido-link-btn text-[11px]"
+              className="hub-link-btn text-[11px]"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="akido-link-btn is-primary text-[11px]"
+              className="hub-link-btn is-primary text-[11px]"
             >
               Save Settings
             </button>

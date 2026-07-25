@@ -97,7 +97,7 @@ export function MorningBriefing({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="akido-link-btn text-[11px]"
+            className="hub-link-btn text-[11px]"
             title={collapsed ? 'Expand Briefing' : 'Collapse Briefing'}
           >
             {collapsed ? '▼ Expand Briefing' : '▲ Collapse'}
@@ -192,14 +192,14 @@ export function MorningBriefing({
                   disabled={!runnerAvailable}
                   disabledReason={runnerAvailable ? undefined : 'aahp binary not on PATH'}
                 />
-                <Link href="/posture" className="akido-link-btn text-[11px]">
+                <Link href="/posture" className="hub-link-btn text-[11px]">
                   🛡 Security & Posture
                 </Link>
                 <a
                   href="https://github.com/issues"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="akido-link-btn text-[11px]"
+                  className="hub-link-btn text-[11px]"
                 >
                   🐙 GitHub Issues
                 </a>
@@ -207,7 +207,7 @@ export function MorningBriefing({
                   href="https://github.com/pulls"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="akido-link-btn text-[11px]"
+                  className="hub-link-btn text-[11px]"
                 >
                   🔀 GitHub PRs
                 </a>

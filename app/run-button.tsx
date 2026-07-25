@@ -79,7 +79,7 @@ export function RunButton({
         type="button"
         disabled
         title={disabledReason ?? 'unavailable'}
-        className="akido-link-btn is-disabled"
+        className="hub-link-btn is-disabled"
       >
         {label}
       </button>
@@ -87,7 +87,7 @@ export function RunButton({
   }
 
   if (state === 'started') {
-    return <span className="akido-link-btn tone-ok">started</span>;
+    return <span className="hub-link-btn tone-ok">started</span>;
   }
 
   if (state === 'error') {
@@ -99,7 +99,7 @@ export function RunButton({
           setErrorMessage(null);
         }}
         title={errorMessage ?? 'unknown error'}
-        className="akido-link-btn tone-er"
+        className="hub-link-btn tone-er"
       >
         retry
       </button>
@@ -107,7 +107,7 @@ export function RunButton({
   }
 
   const busy = state === 'pending' || isPending;
-  const cls = variant === 'primary' ? 'akido-link-btn is-primary' : 'akido-link-btn';
+  const cls = variant === 'primary' ? 'hub-link-btn is-primary' : 'hub-link-btn';
   return (
     <button
       type="button"

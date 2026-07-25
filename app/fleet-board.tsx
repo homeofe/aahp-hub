@@ -330,7 +330,7 @@ function FreshnessBar({
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
-        className="akido-link-btn"
+        className="hub-link-btn"
         title="Re-run the batched GitHub query now instead of waiting for the cache to expire"
       >
         {refreshing ? 'refreshing...' : '↻ refresh repository data'}
@@ -507,7 +507,7 @@ export function FleetBoard({
                 type="button"
                 title={item.title}
                 onClick={() => setSegment(item.id)}
-                className={`akido-pill ${segment === item.id ? 'is-active' : ''}`}
+                className={`hub-pill ${segment === item.id ? 'is-active' : ''}`}
               >
                 {item.label}
                 <span className="ml-1.5 text-dim">
@@ -523,14 +523,14 @@ export function FleetBoard({
                 type="button"
                 title={item.title}
                 onClick={() => setStatus(item.id)}
-                className={`akido-pill ${status === item.id ? 'is-active' : ''}`}
+                className={`hub-pill ${status === item.id ? 'is-active' : ''}`}
               >
                 {item.label}
               </button>
             ))}
           </div>
           {phase && (
-            <button type="button" onClick={() => setPhase('')} className="akido-pill is-active" title="Clear phase filter">
+            <button type="button" onClick={() => setPhase('')} className="hub-pill is-active" title="Clear phase filter">
               phase: {phase} {'×'}
             </button>
           )}

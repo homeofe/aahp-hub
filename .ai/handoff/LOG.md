@@ -115,7 +115,8 @@ Layout now has a 210px left sidebar with:
 
 - Header: AAHP Hub brand block (mono cyan)
 - Nav: `/` Overview, `/metrics`, `/sessions`, `/logs` (with a `// WORK`
-  group separator before metrics, akido-style)
+  group separator before metrics, matching the grouped-nav pattern of the
+  internal dashboard used as the visual reference)
 - Footer: GitHub repo link
 
 The sidebar is a Client Component (`'use client'`) because it uses
@@ -167,8 +168,9 @@ deferred).
 - `/logs` only lists; tailing a log live is the natural next step.
   Either an SSE route that tails the selected file, or just an iframe
   to the on-disk log via a static-files server. Defer until requested.
-- Sidebar collapse animation (akido has one) is not implemented. The
-  fixed 210px is fine on widescreens; could be improved later.
+- Sidebar collapse animation (the reference dashboard has one) is not
+  implemented. The fixed 210px is fine on widescreens; could be improved
+  later.
 - The "more metrics" backlog the user mentioned still has obvious
   candidates: cost in dollars (needs a model price table), trend per
   backend over time, retry counts, time-of-day breakdown. None are
@@ -176,31 +178,32 @@ deferred).
 
 ---
 
-## 2026-04-30: Akido visual language pass (claude-opus-4-7)
+## 2026-04-30: Dark card visual language pass (claude-opus-4-7)
 
-User asked to take over the visual style from `akido-mcp`'s Projects page,
-where GitHub projects are much more legibly laid out: compact cards with a
-left-border status indicator, a name + branch chip header, a hash + commit
-message row, badges, and a row of cyan-tinted action buttons.
+User asked to take over the visual style of an existing internal dashboard's
+Projects page, where GitHub projects are much more legibly laid out: compact
+cards with a left-border status indicator, a name + branch chip header, a
+hash + commit message row, badges, and a row of cyan-tinted action buttons.
 
 ### Decisions
 
-- **Lift the palette wholesale.** The akido tokens (`--bg #0d0d16`, `--c1
-  #151522`, `--cy #38b8f8`, `--ok #00e87a`, `--warn #ffbb00`, `--er
-  #ff4060`) replace the prior Atlas-derived tokens. Tailwind v4 inline
-  `@theme` exposes them as `bg-c1`, `text-cy`, `border-br`, etc.
-- **Akido card primitives in CSS.** `.akido-card`, `.akido-link-btn`,
-  `.akido-chip`, `.akido-pill` carry the look. Tailwind utilities still
+- **Lift the palette wholesale.** The reference dashboard's dark tokens
+  (`--bg #0d0d16`, `--c1 #151522`, `--cy #38b8f8`, `--ok #00e87a`, `--warn
+  #ffbb00`, `--er #ff4060`) replace the prior Atlas-derived tokens.
+  Tailwind v4 inline `@theme` exposes them as `bg-c1`, `text-cy`,
+  `border-br`, etc.
+- **Card primitives in CSS.** `.hub-card`, `.hub-link-btn`,
+  `.hub-chip`, `.hub-pill` carry the look. Tailwind utilities still
   work for layout; the primitives carry the colored-border + button
   aesthetics that would be ugly to express as a long Tailwind class
   string. Three left-border states: `is-running` (green), `is-active-tasks`
   (amber), `is-clean` (faint green).
-- **Card layout follows akido's structure but with AAHP data.**
+- **Card layout follows the reference structure but with AAHP data.**
   - Header: state dot + monospace project name + phase chip (replaces
-    akido's branch chip)
+    the reference's branch chip)
   - "Commit row": last-agent chip + first sentence of `quick_context`
-    (replaces akido's hash + commit message). When an agent is running,
-    a dedicated session row replaces this.
+    (replaces the reference's hash + commit message). When an agent is
+    running, a dedicated session row replaces this.
   - Meta row: relative time + colored count badges
     (`~N` in_progress, `N ready`, `N` done)
   - Active task list (3 tasks max + "+N more")
@@ -208,26 +211,26 @@ message row, badges, and a row of cyan-tinted action buttons.
   - Action button row: Repo / Issues / PRs / Start (primary) / Abort
 - **Action buttons.** Cyan-soft default; primary (Start) is solid cyan;
   destructive (Abort) is red-tinted. Disabled state is dim with tooltip.
-  All match akido's visual weight.
+  All match the reference's visual weight.
 - **Search + filter pills.** New `ProjectFilter` client component with a
   search input and four pills (`All / Running / Has Tasks / Idle`).
   Filtering toggles `display: none` on cards rather than re-rendering;
-  matches akido's pattern for zero-flicker.
+  matches the reference's pattern for zero-flicker.
 - **Tighter spacing.** Card padding `14px 17px` instead of `20px`; gap
   9px between rows. Header is now compact mono. Grid stays at 3 cols max.
-- **Header reads "AAHP Hub" in mono.** The brand pill in akido is
+- **Header reads "AAHP Hub" in mono.** The reference's brand pill is
   monospace; matches.
 
 ### Implementation
 
-- `app/globals.css` rewritten with the akido tokens and the four
+- `app/globals.css` rewritten with the dark tokens above and the four
   primitives. Old Atlas tokens removed.
 - `app/layout.tsx` uses `bg-bg text-tx`.
 - `app/page.tsx` rewritten end-to-end (697 -> ~570 lines but the JSX is
   cleaner; helpers like `cardStateClass`, `cardFilterAttr`, `dotColor`
   centralise the logic).
 - `app/abort-button.tsx`, `app/run-button.tsx` rewritten to use
-  `.akido-link-btn` with tone variants (`tone-ok`, `tone-warn`, `tone-er`,
+  `.hub-link-btn` with tone variants (`tone-ok`, `tone-warn`, `tone-er`,
   `is-primary`, `is-disabled`).
 - `app/auto-refresh.tsx` `RefreshButton` and `LiveIndicator` use the new
   classes.
@@ -244,13 +247,13 @@ message row, badges, and a row of cyan-tinted action buttons.
 
 ### Open follow-ups
 
-- Per-card sparkline area (akido renders a tiny histogram) is omitted.
-  Could plot run frequency over the last 14 days from `metrics.jsonl`
-  if there is appetite. Not load-bearing.
-- Akido shows global metrics in a top status bar (containers, lights,
-  models). The hub equivalent (runner + control-port + counts) is in
-  the Control Center already; merging both into a single top bar might
-  be a future cleanup.
+- Per-card sparkline area (the reference dashboard renders a tiny
+  histogram) is omitted. Could plot run frequency over the last 14 days
+  from `metrics.jsonl` if there is appetite. Not load-bearing.
+- The reference dashboard shows global metrics in a top status bar. The
+  hub equivalent (runner + control-port + counts) is in the Control
+  Center already; merging both into a single top bar might be a future
+  cleanup.
 
 ---
 

@@ -4,7 +4,7 @@ import React from 'react';
 
 export function CardSkeleton(): React.ReactElement {
   return (
-    <div className="akido-card animate-pulse">
+    <div className="hub-card animate-pulse">
       <div className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full bg-[var(--c3)]" />
         <span className="h-4 w-32 rounded bg-[var(--c3)]" />
