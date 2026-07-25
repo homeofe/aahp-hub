@@ -32,6 +32,7 @@ original user TODO is complete.
 
 | ID | Task | Resolution |
 |----|------|-----------|
+| - | Verify the hub tolerates additive AAHP CLI record fields | It does, and it cannot do otherwise: the hub has no reader for the `aahp check --json` or `aahp doctor --json` record (the AAHP Verify workflow consumes the doctor exit code, not the payload), and its four real readers are structural with no JSON Schema in the path. `lib/forward-compat.test.ts` pins that property across all four ingests so a future strict validator cannot reintroduce the risk. |
 | - | Daily project overview | Fleet board with issues, pull requests (open/merged/closed-without-merge), open Dependabot alerts and checkout drift per project. Repository mapping from the git origin remote; data via the `gh` CLI in one batched GraphQL query, TTL cached and persisted. |
 | - | Filtering and sorting | Name search, phase filter, status pills, active/archived/not-on-GitHub segments and a "needs attention" sort, all in the fleet board. |
 | - | Detail page | `/projects/[projectId]` exists and now carries a Repository section with the same honest counts. |
