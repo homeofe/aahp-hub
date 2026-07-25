@@ -104,7 +104,7 @@ When akido-mcp is available, use these tools:
 | General GPT tasks | `chatgpt_run` | gpt-5.4 |
 | Real-time knowledge | `grok_run` | grok-4.20 |
 | Local/private tasks | `local_llm_run` | loaded model |
-| Multi-step with plugins | `openclaw_run` | server default |
+| Multi-step with plugins | `agent_run` | server default |
 | Claude from non-Claude | `claude_run` | claude-sonnet-4-6 |
 | Threadripper GPU tasks | `local_llm_threadripper` | loaded model |
 
