@@ -43,7 +43,7 @@ If akido-mcp is available, prefer these MCP tools for routing:
 - `chatgpt_run` - General tasks, GPT-4 family
 - `perplexity_run` - Web-grounded research with citations
 - `local_llm_run` - Free, private, simple tasks
-- `openclaw_run` - Complex multi-step tasks with plugin access
+- `agent_run` - Complex multi-step tasks with plugin access
 - `codex_run` - Coding-specific tasks with file access
 - `claude_run` - When calling Claude from a non-Claude context
 

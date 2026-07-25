@@ -107,7 +107,7 @@ describe('scanProjects', () => {
     expect(project.recentlyActive).toBe(true);
   });
   it('handles a variant manifest (array tasks, object quick_context) without crashing', async () => {
-    makeProject('elvatis-defense', {
+    makeProject('sample-service', {
       version: '3',
       quick_context: {
         project: 'Elvatis Defense',
@@ -125,7 +125,7 @@ describe('scanProjects', () => {
     expect(result.errors).toHaveLength(0);
     expect(result.projects).toHaveLength(1);
     const p = result.projects[0]!;
-    expect(p.name).toBe('elvatis-defense');
+    expect(p.name).toBe('sample-service');
     expect(typeof p.quickContext).toBe('string');
     expect(p.quickContext).toContain('FastAPI');
     expect(p.totalTasks).toBe(2);

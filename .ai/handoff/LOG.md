@@ -576,7 +576,7 @@ strip ANSI noise and slice to a fixed width; we follow the same pattern.
 
 The first dev-server smoke test crashed with "Objects are not valid as a
 React child (found: object with keys {project, stack, last_session,
-active_task})". Root cause: `elvatis-defense/.ai/handoff/MANIFEST.json`
+active_task})". Root cause: `sample-service/.ai/handoff/MANIFEST.json`
 uses a non-spec schema where `quick_context` is an object (not a string)
 and `tasks` is an array (not an object). The MVP code passed the object
 straight to JSX and React refused to render it.
@@ -597,7 +597,7 @@ calls out, so no rule change is needed - just enforcement.
   `event: change` after writing to `sessions.json`
 - Page renders running session ("aahp-runner / smoke test") with pulsing
   dot and last log line
-- `elvatis-defense` (variant schema) renders without crashing
+- `sample-service` (variant schema) renders without crashing
 - Page returns HTTP 200 with active and idle sessions
 
 ### Open questions
