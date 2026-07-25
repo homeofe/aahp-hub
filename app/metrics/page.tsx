@@ -105,7 +105,7 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
             {/* Daily activity */}
             <section className="rounded-[var(--r)] border border-br bg-c1 p-4 mb-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="akido-section-title">Last 14 days</h3>
+                <h3 className="hub-section-title">Last 14 days</h3>
                 <span className="text-[var(--fs-xs)] text-dim font-mono">
                   total {a.daily.reduce((s, d) => s + d.runs, 0)} runs
                 </span>
@@ -120,7 +120,7 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Per-backend */}
               <section className="rounded-[var(--r)] border border-br bg-c1 p-4">
-                <h3 className="akido-section-title mb-3">By backend</h3>
+                <h3 className="hub-section-title mb-3">By backend</h3>
                 <table className="w-full text-[var(--fs-xs)] font-mono">
                   <thead>
                     <tr className="text-dim border-b border-br">
@@ -168,7 +168,7 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
 
               {/* Per-model */}
               <section className="rounded-[var(--r)] border border-br bg-c1 p-4">
-                <h3 className="akido-section-title mb-3">By model</h3>
+                <h3 className="hub-section-title mb-3">By model</h3>
                 <table className="w-full text-[var(--fs-xs)] font-mono">
                   <thead>
                     <tr className="text-dim border-b border-br">
@@ -218,7 +218,7 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
 
               {/* Top by cost */}
               <section className="rounded-[var(--r)] border border-br bg-c1 p-4">
-                <h3 className="akido-section-title mb-3">Top projects by token spend</h3>
+                <h3 className="hub-section-title mb-3">Top projects by token spend</h3>
                 <table className="w-full text-[var(--fs-xs)] font-mono">
                   <thead>
                     <tr className="text-dim border-b border-br">
@@ -264,7 +264,7 @@ export default async function MetricsPage(): Promise<React.ReactElement> {
 
               {/* Recent failures */}
               <section className="rounded-[var(--r)] border border-br bg-c1 p-4">
-                <h3 className="akido-section-title mb-3">Recent failures</h3>
+                <h3 className="hub-section-title mb-3">Recent failures</h3>
                 <ul className="space-y-1.5 text-[var(--fs-xs)] font-mono">
                   {a.recentFailures.map((f, idx) => (
                     <li

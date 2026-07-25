@@ -61,7 +61,7 @@ export default async function PosturePage(): Promise<React.ReactElement> {
 
         {/* Permissions & Refresh Cadence Guidance Box */}
         <section className="rounded-[var(--r)] border border-br bg-[var(--c1)] p-4 font-mono text-[var(--fs-xs)] space-y-2">
-          <h3 className="akido-section-title text-cy">Required GitHub Permissions & Refresh Schedule</h3>
+          <h3 className="hub-section-title text-cy">Required GitHub Permissions & Refresh Schedule</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sec">
             <div>
               <p className="text-tx font-bold mb-1">Required Permissions (Read-Only):</p>
@@ -82,7 +82,7 @@ export default async function PosturePage(): Promise<React.ReactElement> {
 
         {/* Detailed Per-Repository Drill-down Table */}
         <section className="rounded-[var(--r)] border border-br bg-[var(--c1)] p-4">
-          <h3 className="akido-section-title mb-3">Repository Posture Drill-down</h3>
+          <h3 className="hub-section-title mb-3">Repository Posture Drill-down</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-[var(--fs-xs)]">
               <thead>
@@ -138,7 +138,7 @@ export default async function PosturePage(): Promise<React.ReactElement> {
 
                       {/* Ecosystem */}
                       <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="akido-chip">{r.ecosystem}</span>
+                        <span className="hub-chip">{r.ecosystem}</span>
                       </td>
 
                       {/* Supply Chain Guard */}

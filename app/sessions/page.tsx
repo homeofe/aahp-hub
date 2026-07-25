@@ -44,7 +44,7 @@ export default async function SessionsPage(): Promise<React.ReactElement> {
         </header>
 
         <section className="mb-5">
-          <h3 className="akido-section-title mb-3">
+          <h3 className="hub-section-title mb-3">
             Live ({sessionsRes.sessions.length})
           </h3>
           {sessionsRes.sessions.length === 0 ? (
@@ -109,7 +109,7 @@ export default async function SessionsPage(): Promise<React.ReactElement> {
         </section>
 
         <section>
-          <h3 className="akido-section-title mb-3">Recent runs (last 30)</h3>
+          <h3 className="hub-section-title mb-3">Recent runs (last 30)</h3>
           {!metrics.available ? (
             <div className="rounded-[var(--r)] border border-br bg-c1 p-6 text-center text-dim text-[var(--fs-sm)]">
               No metrics file yet.

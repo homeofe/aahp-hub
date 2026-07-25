@@ -104,7 +104,7 @@ body {
 
 /* Elvatis-style Cards & UI Primitives */
 
-.akido-card {
+.hub-card {
   background: rgba(14, 23, 56, 0.75);
   backdrop-filter: blur(12px);
   border: 1px solid var(--br);
@@ -117,27 +117,27 @@ body {
   gap: 10px;
   position: relative;
 }
-.akido-card:hover {
+.hub-card:hover {
   border-color: rgba(0, 180, 216, 0.3);
   border-left-color: var(--cy);
   box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 180, 216, 0.1);
   transform: translateY(-1px);
 }
-.akido-card.is-running {
+.hub-card.is-running {
   border-left-color: var(--ok);
   box-shadow: 0 0 0 1px rgba(14, 169, 125, 0.25), 0 4px 16px rgba(14, 169, 125, 0.12);
 }
-.akido-card.is-active-tasks {
+.hub-card.is-active-tasks {
   border-left-color: var(--warn);
 }
-.akido-card.is-clean {
+.hub-card.is-clean {
   border-left-color: rgba(14, 169, 125, 0.4);
 }
-.akido-card.is-stale {
+.hub-card.is-stale {
   border-left-color: var(--er);
 }
 
-.akido-chip {
+.hub-chip {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   padding: 2px 7px;
@@ -150,7 +150,7 @@ body {
   text-transform: uppercase;
 }
 
-.akido-link-btn {
+.hub-link-btn {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   padding: 4px 10px;
@@ -167,14 +167,14 @@ body {
   gap: 5px;
   white-space: nowrap;
 }
-.akido-link-btn:hover {
+.hub-link-btn:hover {
   background: var(--cy-soft-hover);
   border-color: rgba(0, 180, 216, 0.4);
   color: var(--cy-hover);
   box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);
 }
-.akido-link-btn[disabled],
-.akido-link-btn.is-disabled {
+.hub-link-btn[disabled],
+.hub-link-btn.is-disabled {
   background: transparent;
   border-color: var(--br);
   color: var(--dim);
@@ -183,46 +183,46 @@ body {
   box-shadow: none;
 }
 
-.akido-link-btn.tone-warn {
+.hub-link-btn.tone-warn {
   background: var(--warn-soft);
   border-color: rgba(255, 183, 3, 0.35);
   color: var(--warn);
 }
-.akido-link-btn.tone-warn:hover {
+.hub-link-btn.tone-warn:hover {
   background: rgba(255, 183, 3, 0.25);
   color: #ffca3a;
 }
-.akido-link-btn.tone-er {
+.hub-link-btn.tone-er {
   background: var(--er-soft);
   border-color: rgba(255, 77, 109, 0.35);
   color: var(--er);
 }
-.akido-link-btn.tone-er:hover {
+.hub-link-btn.tone-er:hover {
   background: rgba(255, 77, 109, 0.25);
 }
-.akido-link-btn.tone-ok {
+.hub-link-btn.tone-ok {
   background: var(--ok-soft);
   border-color: rgba(14, 169, 125, 0.35);
   color: var(--ok);
 }
-.akido-link-btn.tone-ok:hover {
+.hub-link-btn.tone-ok:hover {
   background: rgba(14, 169, 125, 0.25);
 }
-.akido-link-btn.is-primary {
+.hub-link-btn.is-primary {
   background: var(--cy);
   color: #040914;
   font-weight: 700;
   border-color: var(--cy);
   box-shadow: 0 0 12px rgba(0, 180, 216, 0.3);
 }
-.akido-link-btn.is-primary:hover {
+.hub-link-btn.is-primary:hover {
   background: var(--cy-hover);
   border-color: var(--cy-hover);
   color: #040914;
   box-shadow: 0 0 18px rgba(0, 180, 216, 0.5);
 }
 
-.akido-section-title {
+.hub-section-title {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
   font-weight: 700;
@@ -231,7 +231,7 @@ body {
   color: var(--sec);
 }
 
-.akido-pill {
+.hub-pill {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   padding: 3px 10px;
@@ -242,12 +242,12 @@ body {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.akido-pill:hover {
+.hub-pill:hover {
   border-color: var(--cy);
   color: var(--cy);
   background: var(--cy-glow);
 }
-.akido-pill.is-active {
+.hub-pill.is-active {
   border-color: var(--cy);
   color: var(--cy);
   background: var(--cy-glow);

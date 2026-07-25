@@ -96,8 +96,8 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="break-words font-mono text-2xl font-bold text-tx">{project.name}</h1>
-                  <span className="akido-chip">{project.phase}</span>
-                  <span className={`akido-pill ${isRunning ? 'text-ok border-[rgba(14,169,125,0.4)]' : ''}`}>
+                  <span className="hub-chip">{project.phase}</span>
+                  <span className={`hub-pill ${isRunning ? 'text-ok border-[rgba(14,169,125,0.4)]' : ''}`}>
                     {isRunning ? 'running' : project.inProgressTasks > 0 ? 'in progress' : project.readyTasks > 0 ? 'ready' : project.recentlyActive ? 'recently active' : 'dormant'}
                   </span>
                 </div>
@@ -116,10 +116,10 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
             <div className="flex flex-wrap items-center gap-2">
               {github && (
                 <>
-                  <a className="akido-link-btn is-primary" href={github.repository} target="_blank" rel="noopener noreferrer">Repository {'\u2197'}</a>
-                  <a className="akido-link-btn" href={github.issues} target="_blank" rel="noopener noreferrer">Issues</a>
-                  <a className="akido-link-btn" href={github.pulls} target="_blank" rel="noopener noreferrer">Pull requests</a>
-                  <a className="akido-link-btn" href={github.actions} target="_blank" rel="noopener noreferrer">Actions</a>
+                  <a className="hub-link-btn is-primary" href={github.repository} target="_blank" rel="noopener noreferrer">Repository {'\u2197'}</a>
+                  <a className="hub-link-btn" href={github.issues} target="_blank" rel="noopener noreferrer">Issues</a>
+                  <a className="hub-link-btn" href={github.pulls} target="_blank" rel="noopener noreferrer">Pull requests</a>
+                  <a className="hub-link-btn" href={github.actions} target="_blank" rel="noopener noreferrer">Actions</a>
                 </>
               )}
               <RunButton project={project.name} label={'\u25B6 Start run'} variant="primary" disabled={!canRun} disabledReason={runDisabledReason} />
@@ -280,7 +280,7 @@ export default async function ProjectPage({ params }: PageProps<'/projects/[proj
 
           {github && (
             <div className="flex justify-end">
-              <a href={github.security} target="_blank" rel="noopener noreferrer" className="akido-link-btn">Open repository security {'\u2197'}</a>
+              <a href={github.security} target="_blank" rel="noopener noreferrer" className="hub-link-btn">Open repository security {'\u2197'}</a>
             </div>
           )}
           <div className="h-[70vh]" aria-hidden />

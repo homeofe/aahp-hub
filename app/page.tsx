@@ -440,7 +440,7 @@ export default async function Page(): Promise<React.ReactElement> {
         {/* Parse errors section - improved with preview */}
         {result.errors.length > 0 && (
           <section className="mt-6">
-            <h2 className="akido-section-title text-er mb-2">
+            <h2 className="hub-section-title text-er mb-2">
               {'\u26A0'} Manifest parse errors ({result.errors.length})
             </h2>
             <p className="text-[var(--fs-xs)] text-dim mb-3">
@@ -455,7 +455,7 @@ export default async function Page(): Promise<React.ReactElement> {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-mono text-sec truncate flex-1">{redactHome(e.path)}</p>
-                    <span className="akido-chip text-er text-[9px]">parse error</span>
+                    <span className="hub-chip text-er text-[9px]">parse error</span>
                   </div>
                   <p className="text-er mt-1 font-mono text-[var(--fs-xs)]">{e.message}</p>
                 </li>
