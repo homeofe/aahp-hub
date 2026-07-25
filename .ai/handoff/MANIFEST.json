@@ -2,76 +2,76 @@
   "aahp_version": "3.0",
   "project": "aahp-hub",
   "last_session": {
-    "agent": "claude-opus-5",
-    "session_id": "cli-1784989580",
-    "timestamp": "2026-07-25T14:26:20Z",
-    "commit": "729673a",
-    "phase": "implementation",
-    "duration_minutes": 120
+    "agent": "cli-tool",
+    "session_id": "cli-1785002554",
+    "timestamp": "2026-07-25T18:02:35Z",
+    "commit": "900eaf1",
+    "phase": "idle",
+    "duration_minutes": 0
   },
   "files": {
     "STATUS.md": {
-      "checksum": "sha256:4e23db6101f770a45bae30b6081d9547f2acb74d04d5479e71691a75ebc057d1",
-      "updated": "2026-07-25T14:24:20Z",
+      "checksum": "sha256:e7330767d974b2535d8435217500582119f34597cddad03defd26da31bf0c186",
+      "updated": "2026-07-25T18:02:23Z",
       "lines": 182,
       "summary": "(no summary available)"
     },
     "NEXT_ACTIONS.md": {
-      "checksum": "sha256:e2201a19845722faf118847294631b1d2725a2271a9926761dc61ecd22cbcc55",
-      "updated": "2026-07-25T14:24:49Z",
+      "checksum": "sha256:06bc792a6799959d103fbeabe1e149f6e982c2caaad7d23f1e6dddc1c6e6f279",
+      "updated": "2026-07-25T18:02:23Z",
       "lines": 44,
       "summary": "(no summary available)"
     },
     "LOG.md": {
-      "checksum": "sha256:dec31d525ffa82797ee3656f19a884656acf08a6f2a206b3f6620dd84e25bd57",
-      "updated": "2026-07-25T14:25:11Z",
+      "checksum": "sha256:823dcba4b7a45ca62c58144c91f8eac1ec5129e8a2df5543c94f2cc92ca74eec",
+      "updated": "2026-07-25T18:02:23Z",
       "lines": 801,
       "summary": "(no summary available)"
     },
     "LOG-ARCHIVE.md": {
       "checksum": "sha256:b1f75cf29efe8c61000fdd1822dfcbc71c7ee4f75a17f95281d55f6e414a1eb0",
-      "updated": "2026-07-25T13:54:07Z",
+      "updated": "2026-07-25T17:56:46Z",
       "lines": 10,
       "summary": "(no summary available)"
     },
     "DASHBOARD.md": {
       "checksum": "sha256:b0782b2c35fd8ccda7057e0151bdc3239732117fa05cd83a2dd01600a65fa98f",
-      "updated": "2026-07-25T13:54:07Z",
+      "updated": "2026-07-25T17:56:46Z",
       "lines": 74,
       "summary": "(no summary available)"
     },
     "TRUST.md": {
       "checksum": "sha256:141b2c23c467b59a90acdcdf6faf7518852994e9581648578e083801a004910a",
-      "updated": "2026-07-25T13:54:07Z",
+      "updated": "2026-07-25T17:56:46Z",
       "lines": 84,
       "summary": "(no summary available)"
     },
     "CONVENTIONS.md": {
       "checksum": "sha256:b44f3b5474bd2925db6381439857d9beecd3e7c81e56220e5ca4161ddaa0c86e",
-      "updated": "2026-07-25T13:54:07Z",
+      "updated": "2026-07-25T17:56:46Z",
       "lines": 112,
       "summary": "(no summary available)"
     },
     "WORKFLOW.md": {
       "checksum": "sha256:71746fcb7ba4885e85bf37302840ea9402eb1d04b662274611f862c429fde74d",
-      "updated": "2026-07-25T13:54:07Z",
+      "updated": "2026-07-25T17:56:46Z",
       "lines": 167,
       "summary": "(no summary available)"
     },
     "GROUNDING.md": {
       "checksum": "sha256:7ef8cece585dc5defb4285175b9ba560d5469675df553d4ce28ec9e7aec24343",
-      "updated": "2026-07-25T13:54:07Z",
+      "updated": "2026-07-25T17:56:46Z",
       "lines": 209,
       "summary": "(no summary available)"
     },
     "pii-allowlist.json": {
       "checksum": "sha256:7c1051f6e2bc3943b7c1dbe4da229694455681b8875a346c99279e555edb733f",
-      "updated": "2026-07-25T13:54:07Z",
+      "updated": "2026-07-25T17:56:46Z",
       "lines": 4,
       "summary": "{"
     }
   },
-  "quick_context": "Fleet board: per-project issues, PRs (open/merged/closed-without-merge), Dependabot alerts and checkout drift, sourced through the gh CLI with a persisted TTL cache. Repository mapping from the git origin remote. Fabricated tooling panel removed.",
+  "quick_context": "(no summary available) (no summary available) ",
   "token_budget": {
     "manifest_only": 85,
     "manifest_plus_core": 3526,
