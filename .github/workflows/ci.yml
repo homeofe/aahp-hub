@@ -1,0 +1,67 @@
+# CI - the correctness gate for the application code itself.
+#
+# Before this workflow existed the repository ran no test suite, no lint and no
+# build in CI. The only two checks were AAHP Verify (handoff-state integrity)
+# and Supply Chain Guard (dependency risk); neither one compiles, type-checks or
+# executes a single line of lib/ or app/. A change that broke the Vitest suite
+# still reported two green checks and could be merged.
+#
+# Step order is cheapest-signal-first: lint, then the unit suite, then the
+# production build.
+#
+# The type check must run AFTER `npm run build`. Next.js generates the route
+# helper types (`PageProps<'/projects/[projectId]'>` and friends) into
+# .next/types plus next-env.d.ts as part of the build, and tsconfig.json pulls
+# those generated files into `include`. On a fresh checkout that has never been
+# built, `tsc --noEmit` therefore fails with "Cannot find name 'PageProps'" -
+# an artifact of the missing generated types, not a real defect. Running the
+# build first makes the check meaningful. It is kept as an explicit step rather
+# than relying on the build alone so that files outside the Next.js graph, such
+# as lib/**/*.test.ts, are type-checked too.
+#
+# NOTE: once this has a green history, mark the `test` job as a REQUIRED status
+# check in branch protection alongside AAHP Verify.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only: this job builds and tests, it never writes to the repository.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Type check (needs the build-generated route types)
+        run: npx --no-install tsc --noEmit

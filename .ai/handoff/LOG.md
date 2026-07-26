@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-07-26: The application code finally has a CI gate (claude-opus-5)
+
+The repository ran no test suite in CI. `.github/workflows/aahp-verify.yml`
+checks handoff-state integrity and `.github/workflows/supply-chain-guard.yml`
+checks dependency risk; neither one runs `npm test`, `npm run lint`,
+`npm run build` or a type check. There are no local git hooks in the tree
+either. A change that broke every test in lib/ produced two green checks.
+
+`.github/workflows/ci.yml` closes that hole: lint, unit tests, build, type
+check, on push to main and on every pull request, read-only permissions, a
+15 minute timeout, Node 20 to match the AAHP Verify job.
+
+### Why the type check runs after the build
+
+Next.js generates the typed-routes helpers (`PageProps<'/projects/[projectId]'>`
+and siblings) into `.next/types`, plus `next-env.d.ts`, as part of `next build`,
+and `tsconfig.json` pulls both into `include`. On a checkout that has never been
+built, `npx tsc --noEmit` therefore reports `Cannot find name 'PageProps'` in
+app/projects/[projectId]/page.tsx. That is a missing generated file, not a
+defect. After `npm run build` the same command exits 0. It is kept as its own
+step rather than trusting the build alone so that files outside the Next.js
+graph, notably lib/**/*.test.ts, are type-checked too.
+
+### The gate was watched failing before it was trusted
+
+A scratch branch carried this workflow together with a deliberate regression:
+a strict top-level key allowlist in `parseManifest` (lib/manifest.ts) that
+throws on any key outside the six declared in `RawManifest`. The job went red
+at the unit test step (`lib/manifest.test.ts`, 1 failed / 194 passed), with
+build and type check skipped. Run 30193587435. The branch was deleted; nothing
+of the regression is on this branch.
+
+---
+
 ## 2026-07-25: Daily project overview, honest by construction (claude-opus-5)
 
 The dashboard rendered AAHP handoff state and nothing else, which made it
