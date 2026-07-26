@@ -85,6 +85,56 @@ superseded runs on branches so a rapid series of pushes does not keep several
 obsolete runs burning minutes; `main` is excluded from cancellation so the
 default branch keeps a complete per-commit history.
 
+## 2026-07-25: Record ingest is forward compatible, and now tested (claude-opus-5)
+
+AAHP v3.8.0 grew two additive top-level fields on its CLI records: the
+`aahp check --json` record carries `command: "check"`, and the
+`aahp doctor --governance --json` record carries `mode: "governance"`. Both
+keep `schemaVersion: 1`. The open question was whether this hub rejects a
+record that carries a top-level key it does not know.
+
+### Finding: the hub has no reader for either record
+
+The hub ingests four kinds of JSON record, none of which is a check or doctor
+record:
+
+| Record | Reader | Source |
+|--------|--------|--------|
+| `.ai/handoff/MANIFEST.json` | `lib/manifest.ts` | handoff state on disk |
+| runner metrics JSONL | `lib/metrics.ts` | the runner |
+| live sessions file | `lib/sessions.ts` | the runner and the editor extension |
+| `.ai/posture.json` | `lib/posture.ts` | this hub's own posture view |
+
+The only place the hub touches a doctor record is the AAHP Verify workflow,
+which runs `aahp doctor . --json` as a gate step and consumes the exit code,
+not the payload. So neither new field can be rejected here: there is nothing
+to reject it. Both were exercised against the pinned CLI and the governance
+record still exits 0 with its six-key gates map intact.
+
+### ADR: pin the forward-compatibility property rather than add a reader
+
+Every one of the four readers is structural. It picks the keys it knows off a
+parsed object and ignores the rest; there is no JSON Schema validator and no
+`additionalProperties: false` anywhere in an ingest path. That is exactly the
+tolerance the question was asking about, but nothing tested it, so nothing
+stopped a future contributor from adding a strict validator and breaking every
+producer that had moved ahead of us.
+
+`lib/forward-compat.test.ts` now runs each of the four ingests twice, once on
+a baseline record and once on the identical record plus additive top-level
+keys, and asserts the ingested result is unchanged. The additive keys used are
+the real v3.8.0 ones, so the day a reader for the check or doctor record is
+added, the property already covers it.
+
+The test was verified to fail before it was kept: an allowlist check
+temporarily added to the manifest parser turned the manifest case red with
+`unknown top-level key: schemaVersion`, and the parser was then restored. A
+green test that cannot go red is not a gate.
+
+Rejected: writing a check or doctor record reader now. There is no consumer
+asking for one, and a reader built against a speculative use would be
+untested against a real screen.
+
 ---
 
 ## 2026-07-25: Daily project overview, honest by construction (claude-opus-5)
