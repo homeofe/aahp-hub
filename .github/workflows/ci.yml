@@ -4,7 +4,14 @@
 # build in CI. The only two checks were AAHP Verify (handoff-state integrity)
 # and Supply Chain Guard (dependency risk); neither one compiles, type-checks or
 # executes a single line of lib/ or app/. A change that broke the Vitest suite
-# still reported two green checks and could be merged.
+# still reported two green checks.
+#
+# SCOPE, STATED PLAINLY: this workflow REPORTS. It does not block a merge.
+# `main` currently has no required status checks at all - not this job, not
+# AAHP Verify, not Supply Chain Guard. Until a required check is configured in
+# branch protection, every check here is a notification that a human has to
+# read. Turning it into a gate is a separate, deliberate decision (see the
+# follow-up note in .ai/handoff/NEXT_ACTIONS.md).
 #
 # Step order is cheapest-signal-first: lint, then the unit suite, then the
 # production build.
@@ -17,19 +24,27 @@
 # an artifact of the missing generated types, not a real defect. Running the
 # build first makes the check meaningful. It is kept as an explicit step rather
 # than relying on the build alone so that files outside the Next.js graph, such
-# as lib/**/*.test.ts, are type-checked too.
-#
-# NOTE: once this has a green history, mark the `test` job as a REQUIRED status
-# check in branch protection alongside AAHP Verify.
+# as the test files, are type-checked too.
 
 name: CI
 
+# Triggers are deliberately NOT filtered by base branch. A `pull_request`
+# filtered to `branches: [main]` produces no run at all for a pull request
+# targeting anything else, and a missing check reads as "not applicable" when
+# it actually means "never verified". Every pull request gets a verdict.
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
   workflow_dispatch:
+
+# One in-flight run per ref. A branch that is pushed several times in a row
+# would otherwise keep every superseded run alive to completion, and only the
+# newest commit's verdict is meaningful. `main` is excluded from cancellation
+# so the default branch keeps a complete per-commit history.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Read-only: this job builds and tests, it never writes to the repository.
 permissions:
@@ -54,9 +69,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      # `eslint` exits 0 on warnings, so without --max-warnings=0 a warning
+      # scrolls past in the log and the step still reports success. The tree is
+      # warning-free today, so the strict setting costs nothing and keeps it
+      # that way. If a warning is ever the deliberate, accepted outcome, silence
+      # it at the rule or the line - do not relax this flag.
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --max-warnings=0
 
+      # Runs the whole suite. vitest.config.ts intentionally carries no
+      # directory-scoped include glob, so a test added outside lib/ cannot be
+      # skipped into a false green.
       - name: Unit tests
         run: npm test
 
