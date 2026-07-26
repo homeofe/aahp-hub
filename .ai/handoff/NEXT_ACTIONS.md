@@ -17,6 +17,8 @@ original user TODO is complete.
 
 | Area | Suggestion | Why |
 |------|-----------|-----|
+| Branch protection | Decide which checks become REQUIRED on `main`. Today there are none: `Lint, test and build`, `AAHP Verify` and `Supply Chain Guard` all merely report | Protection on `main` currently covers admin enforcement, force pushes and deletion only, so a red check does not stop a merge. Needs an owner decision, not a code change |
+| Doc accuracy | Correct the header comment in `.github/workflows/aahp-verify.yml`, which calls that job "the intended REQUIRED status check" and says it "stays a REQUIRED check" | It is not required today, and this repository is public; a claim of enforcement that does not exist is worse than the gap |
 | CI status | Add a workflow-run column (last conclusion per default branch) to the fleet board | The board covers issues, PRs, alerts and drift; a red pipeline is the remaining daily signal |
 | Forgejo | Read issue and PR counts for projects on forge.internal.example | Today they render as not-applicable, which is honest but empty |
 | Fetch prompt | Offer a one-click `git fetch` for checkouts flagged as behind | Drift is detected but the fix is still manual, and fetching must stay an explicit user action |
