@@ -17,7 +17,7 @@ original user TODO is complete.
 
 | Area | Suggestion | Why |
 |------|-----------|-----|
-| Branch protection | Mark the CI job (`Lint, test and build`) as a required status check on `main`, alongside AAHP Verify | The workflow only prevents a merge once it is required; today it can be ignored |
+| Branch protection | Decide which checks become REQUIRED on `main`. Today there are none: `Lint, test and build`, `AAHP Verify` and `Supply Chain Guard` all merely report | Protection on `main` currently covers admin enforcement, force pushes and deletion only, so a red check does not stop a merge. Needs an owner decision, not a code change |
 | CI status | Add a workflow-run column (last conclusion per default branch) to the fleet board | The board covers issues, PRs, alerts and drift; a red pipeline is the remaining daily signal |
 | Forgejo | Read issue and PR counts for projects on forge.internal.example | Today they render as not-applicable, which is honest but empty |
 | Fetch prompt | Offer a one-click `git fetch` for checkouts flagged as behind | Drift is detected but the fix is still manual, and fetching must stay an explicit user action |

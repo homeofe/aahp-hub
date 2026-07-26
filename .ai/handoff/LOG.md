@@ -5,7 +5,7 @@
 
 ---
 
-## 2026-07-26: The application code finally has a CI gate (claude-opus-5)
+## 2026-07-26: The application code finally runs in CI (claude-opus-5)
 
 The repository ran no test suite in CI. `.github/workflows/aahp-verify.yml`
 checks handoff-state integrity and `.github/workflows/supply-chain-guard.yml`
@@ -13,9 +13,39 @@ checks dependency risk; neither one runs `npm test`, `npm run lint`,
 `npm run build` or a type check. There are no local git hooks in the tree
 either. A change that broke every test in lib/ produced two green checks.
 
-`.github/workflows/ci.yml` closes that hole: lint, unit tests, build, type
-check, on push to main and on every pull request, read-only permissions, a
-15 minute timeout, Node 20 to match the AAHP Verify job.
+`.github/workflows/ci.yml` runs lint, unit tests, build and type check on push
+to main and on every pull request, with read-only permissions, a 15 minute
+timeout and Node 20 to match the AAHP Verify job.
+
+### What this does NOT do
+
+It does not block a merge, and an earlier draft of this entry was wrong to say
+it closed the hole. `main` has no required status checks at all: not this job,
+not AAHP Verify, not Supply Chain Guard. Branch protection on main enforces
+admin inclusion, no force pushes and no branch deletion, and nothing else.
+Every check in this repository is therefore a notification that a human has to
+read, and a red one can still be merged past. Configuring a required check is
+a separate, deliberate decision for the repository owner, recorded in
+NEXT_ACTIONS.md.
+
+### The suite is no longer scoped to a directory
+
+vitest.config.ts carried `include: ['lib/**/*.test.ts']`. Every test file
+happens to live in lib/ today, so the set of tests that actually run is
+unchanged, but the glob meant a test added anywhere else would never be
+collected while `npm test` still exited 0 - precisely the false-green failure
+mode this workflow exists to remove. The include is now the unscoped default
+pattern (any `.test`/`.spec` file, any TypeScript or JavaScript extension),
+with node_modules and the build output directories excluded.
+
+### Lint warnings were not failures
+
+`npm run lint` is bare `eslint`, which exits 0 on warnings, so a warning would
+print into the log under a green check. The CI step runs `--max-warnings=0`.
+The tree is warning-free today, so this changes no current result; it prevents
+the drift. Chosen deliberately over the alternative of tolerating warnings,
+and the reasoning is written into the workflow so the next reader is not left
+guessing.
 
 ### Why the type check runs after the build
 
@@ -26,16 +56,34 @@ built, `npx tsc --noEmit` therefore reports `Cannot find name 'PageProps'` in
 app/projects/[projectId]/page.tsx. That is a missing generated file, not a
 defect. After `npm run build` the same command exits 0. It is kept as its own
 step rather than trusting the build alone so that files outside the Next.js
-graph, notably lib/**/*.test.ts, are type-checked too.
+graph, notably the test files, are type-checked too.
 
-### The gate was watched failing before it was trusted
+### The gate was watched failing twice
 
-A scratch branch carried this workflow together with a deliberate regression:
-a strict top-level key allowlist in `parseManifest` (lib/manifest.ts) that
-throws on any key outside the six declared in `RawManifest`. The job went red
-at the unit test step (`lib/manifest.test.ts`, 1 failed / 194 passed), with
-build and type check skipped. Run 30193587435. The branch was deleted; nothing
-of the regression is on this branch.
+First on a push event: a scratch branch carried this workflow together with a
+deliberate regression, a strict top-level key allowlist in `parseManifest`
+(lib/manifest.ts) that throws on any key outside the six declared in
+`RawManifest`. The job went red at the unit test step (`lib/manifest.test.ts`,
+1 failed / 194 passed), with build and type check skipped. Run 30193587435.
+That single failing test was caused by the injected regression and by nothing
+else; on clean code the suite is green, and run 30193724486 on this branch
+reports 14 test files and 195 tests passing.
+
+A push event is not the trigger a required status check evaluates, so the
+second proof used a pull_request event and put the failing test OUTSIDE lib/,
+which makes the same run prove the widened include glob as well: 15 test files
+collected where the clean branch collects 14. Run 30195092609. Both scratch
+branches were deleted; nothing of either regression is on this branch.
+
+### Trigger and concurrency
+
+The `pull_request` trigger carries no base-branch filter. Filtered to
+`branches: [main]` it produced no run at all for a pull request targeting any
+other base, and a missing check reads as "not applicable" when it in fact
+means "never verified". A concurrency group keyed on the ref cancels
+superseded runs on branches so a rapid series of pushes does not keep several
+obsolete runs burning minutes; `main` is excluded from cancellation so the
+default branch keeps a complete per-commit history.
 
 ---
 
